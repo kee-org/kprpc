@@ -1,7 +1,7 @@
 
 import { mapStandardToBase64PNG } from "../icons";
 import suffixList from "../testDeps/publicsuffixlist";
-import punycode from "punycode/";
+import punycode from "punycode";
 import pslData from "../testDeps/pslData";
 import { MatchAccuracyMethod } from "../MatchAccuracyMethod";
 import * as kdbxweb from "kdbxweb";
@@ -33,64 +33,64 @@ describe("icons", async () => {
 describe("getURLSummary", async () => {
     test("standardHttpWithPath", async () => {
         const result = model.getURLSummary("http://www.google.com/any/path", getDomain);
-        expect (result.hostAndPort).toEqual("www.google.com");
-        expect (result.port).toEqual("");
-        expect (result.domain).toEqual("google.com");
+        expect(result.hostAndPort).toEqual("www.google.com");
+        expect(result.port).toEqual("");
+        expect(result.domain).toEqual("google.com");
     });
     test("standardLocalFile", async () => {
         const result = model.getURLSummary("file://c/any/path/file.ext", getDomain);
-        expect (result.port).toEqual("");
-        expect (result.domain).toEqual(null);
+        expect(result.port).toEqual("");
+        expect(result.domain).toEqual(null);
     });
     test("malformedLocalFileWithoutExtension", async () => {
         const result = model.getURLSummary("c:\\any\\path\\file", getDomain);
-        expect (result.hostAndPort).toEqual("c:\\any\\path\\file");
-        expect (result.port).toEqual("");
-        expect (result.domain).toEqual("");
+        expect(result.hostAndPort).toEqual("c:\\any\\path\\file");
+        expect(result.port).toEqual("");
+        expect(result.domain).toEqual("");
         //TODO: The C# version tests for: Assert.IsNull(summary.Domain.RegistrableDomain);
         // I think the difference between null and "" is insignificant in all real-world
         // cases but this needs verification and refactoring if proven correct
     });
     test("malformedLocalFileWithExtension", async () => {
         const result = model.getURLSummary("c:\\any\\path\\file.ext", getDomain);
-        expect (result.hostAndPort).toEqual("c:\\any\\path\\file.ext");
-        expect (result.port).toEqual("");
-        expect (result.domain).toEqual("c:\\any\\path\\file.ext"); //Assert.AreEqual("ext", summary.Domain.TLD);
+        expect(result.hostAndPort).toEqual("c:\\any\\path\\file.ext");
+        expect(result.port).toEqual("");
+        expect(result.domain).toEqual("c:\\any\\path\\file.ext"); //Assert.AreEqual("ext", summary.Domain.TLD);
     });
     test("standardHttpsWithPortAndPath", async () => {
         const result = model.getURLSummary("http://www.google.com:12345/any/path", getDomain);
-        expect (result.hostAndPort).toEqual("www.google.com:12345");
-        expect (result.port).toEqual("12345");
-        expect (result.domain).toEqual("google.com");
+        expect(result.hostAndPort).toEqual("www.google.com:12345");
+        expect(result.port).toEqual("12345");
+        expect(result.domain).toEqual("google.com");
     });
 
     test("standardData", async () => {
         const result = model.getURLSummary("data:,_www.google.com", getDomain);
-        expect (result.hostAndPort).toEqual("");
-        expect (result.port).toEqual("");
-        expect (result.domain).toEqual(null);
+        expect(result.hostAndPort).toEqual("");
+        expect(result.port).toEqual("");
+        expect(result.domain).toEqual(null);
     });
     test("dataEndingWithQSAndFile", async () => {
         const result = model.getURLSummary("data:,_www.google.com?anything.file://", getDomain);
-        expect (result.hostAndPort).toEqual("");
-        expect (result.port).toEqual("");
-        expect (result.domain).toEqual(null);
+        expect(result.hostAndPort).toEqual("");
+        expect(result.port).toEqual("");
+        expect(result.domain).toEqual(null);
     });
     test("dataEndingWithFile", async () => {
         const result = model.getURLSummary("data:,_www.google.com.file://", getDomain);
-        expect (result.hostAndPort).toEqual("");
-        expect (result.port).toEqual("");
-        expect (result.domain).toEqual(null);
+        expect(result.hostAndPort).toEqual("");
+        expect(result.port).toEqual("");
+        expect(result.domain).toEqual(null);
     });
     test("dataEndingWithQSAndHttps", async () => {
         const result = model.getURLSummary("data:,_www.google.com?anything.https://", getDomain);
-        expect (result.hostAndPort).toEqual("");
-        expect (result.port).toEqual("");
-        expect (result.domain).toEqual(null);
+        expect(result.hostAndPort).toEqual("");
+        expect(result.port).toEqual("");
+        expect(result.domain).toEqual(null);
     });
 });
 
-describe ("URLMatchTest", async () => {
+describe("URLMatchTest", async () => {
 
     function testCase (expectedResult: MatchAccuracyMethod, urlSearch: string, entryMam: MatchAccuracyMethod, defaultMam: MatchAccuracyMethod, overrideURLs: string[] = [], overrideMethods: MatchAccuracyMethod[] = []) {
         const name = "" + expectedResult + urlSearch + entryMam + defaultMam + overrideURLs + overrideMethods;
@@ -100,7 +100,7 @@ describe ("URLMatchTest", async () => {
             const group = newDb.createGroup(newDb.getDefaultGroup(), "subgroup");
             const pwe = newDb.createEntry(group);
 
-            const conf = new EntryConfig(null, entryMam);
+            const conf = new EntryConfig(undefined, entryMam);
             model.setEntryConfig(pwe, conf);
             const urlSummary = model.getURLSummary(urlSearch, getDomain);
             const dbConf = new DatabaseConfig();
@@ -130,7 +130,7 @@ describe ("URLMatchTest", async () => {
 
 });
 
-describe ("CalculatesCorrectMatchAccuracyScore", async () => {
+describe("CalculatesCorrectMatchAccuracyScore", async () => {
 
     function testCase (expectedResult: MatchAccuracyEnum, urlEntry: string, urlSearch: string, entryMam: MatchAccuracyMethod) {
         const name = "" + expectedResult + urlEntry + urlSearch + entryMam;
@@ -141,7 +141,7 @@ describe ("CalculatesCorrectMatchAccuracyScore", async () => {
             const group = newDb.createGroup(newDb.getDefaultGroup(), "subgroup");
             const pwe = newDb.createEntry(group);
             pwe.fields.URL = urlEntry;
-            const conf = new EntryConfig(null, entryMam);
+            const conf = new EntryConfig(undefined, entryMam);
             model.setEntryConfig(pwe, conf);
             const urlSummary = model.getURLSummary(urlSearch, getDomain);
 

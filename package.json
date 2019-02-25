@@ -1,6 +1,6 @@
 {
   "name": "kprpc",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "A KeePassRPC server",
   "main": "main.js",
   "types": "main.d.ts",
@@ -13,18 +13,18 @@
     "lint": "tslint '*.ts'"
   },
   "devDependencies": {
-    "@types/jest": "^23.1.0",
-    "jest": "^22.0.0",
+    "@types/jest": "^24.0.6",
+    "jest": "^24.1.0",
     "punycode": "^2.1.1",
-    "ts-jest": "^22.4.6",
-    "tslint": "^5.5.0",
-    "tslint-config-standard": "^6.0.1",
-    "typescript": "^2.9.2"
+    "ts-jest": "^24.0.0",
+    "tslint": "^5.13.0",
+    "tslint-config-standard": "^8.0.1",
+    "typescript": "^3.3.3333"
   },
   "dependencies": {
     "jrpc": "3.1.2",
-    "kdbx-placeholders": "^1.1.7",
-    "kdbxweb": "^1.2.4",
+    "kdbx-placeholders": "^1.1.10",
+    "kdbxweb": "^1.2.5",
     "secure-remote-password": "^0.3.1"
   }
 }

@@ -3,5 +3,6 @@
         "Hashcash",
         "jrpc",
         "urlsum"
-    ]
+    ],
+    "typescript.tsdk": "node_modules/typescript/lib"
 }

@@ -64,6 +64,7 @@ declare module 'kdbxweb' {
             IRCommunication: number;
             Identity: number;
             Info: number;
+            Key: number;
             List: number;
             LockOpen: number;
             MarkedDirectory: number;
@@ -398,13 +399,13 @@ class ProtectedValue {
      * Creates protected value from string with new random salt
      * @param {string} str
      */
-    static fromString(str: string): void;
+    static fromString(str: string): ProtectedValue;
 
     /**
      * Creates protected value from binary with new random salt
      * @param {ArrayBuffer} binary
      */
-    static fromBinary(binary: ArrayBuffer): void;
+    static fromBinary(binary: ArrayBuffer): ProtectedValue;
 
     /**
      * Determines whether the value is included as substring (safe check; doesn't decrypt full string)
@@ -476,7 +477,7 @@ class KdbxContext {
  * @param {String|ArrayBuffer|Uint8Array} [keyFile]
  * @constructor
  */
-class KdbxCredentials {
+class Credentials {
     constructor(password: ProtectedValue, keyFile?: string | ArrayBuffer | Uint8Array);
 
     /**
@@ -535,12 +536,13 @@ class KdbxDeletedObject {
 
 }
 
-/**
- * Entry
- * @constructor
- */
-class KdbxEntry {
-    constructor();
+export class KdbxEntry {
+
+    /**
+     * Entry
+     * @constructor
+     */
+    public constructor();
 
     uuid;
     icon;
@@ -556,7 +558,7 @@ class KdbxEntry {
     enabled: boolean, obfuscation: any, defaultSequence: any, items: any[]
     };
     history: any[];
-    parentGroup: KdbxGroup;
+    parentGroup;
     customData;
 
     /**
@@ -831,18 +833,18 @@ class KdbxTimes {
 class KdbxUuid {
     constructor(ab: ArrayBuffer | string);
 
-    /**
-     * Checks whether two uuids are equal
-     * @param {KdbxUuid|string} other
-     */
-    equals(other: KdbxUuid | string): void;
-
-    /**
-     * Generated random uuid
-     * @return {KdbxUuid}
-     * @static
-     */
     static random(): KdbxUuid;
+
+    id: string;
+    empty: boolean;
+
+    equals(other: KdbxUuid): boolean;
+
+    toBytes(): Uint8Array | undefined;
+
+    toString(): string;
+
+    valueOf(): string | undefined;
 
 }
 
@@ -852,7 +854,7 @@ class KdbxUuid {
  */
 class Kdbx {
     header: KdbxHeader;
-    credentials: KdbxCredentials;
+    credentials: Credentials;
     meta: KdbxMeta;
     xml: any;
     binaries: any;
@@ -865,25 +867,25 @@ class Kdbx {
      * Creates new database
      * @return {Kdbx}
      */
-    static create(): Kdbx;
+    static create(credentials: Credentials, name: string): Kdbx;
 
     /**
      * Load kdbx file
      * If there was an error loading file, throws an exception
      * @param {ArrayBuffer} data - database file contents
-     * @param {KdbxCredentials} credentials
+     * @param {Credentials} credentials
      * @return {Promise.<Kdbx>}
      */
-    static load(data: ArrayBuffer, credentials: KdbxCredentials): any;
+    static load(data: ArrayBuffer, credentials: Credentials): any;
 
     /**
      * Import database from xml file
      * If there was an error loading xml file, throws an exception
      * @param {String} data - xml file contents
-     * @param {KdbxCredentials} credentials
+     * @param {Credentials} credentials
      * @return {Promise.<Kdbx>}
      */
-    static loadXml(data: string, credentials: KdbxCredentials): any;
+    static loadXml(data: string, credentials: Credentials): any;
 
     /**
      * Save db to ArrayBuffer
@@ -913,7 +915,7 @@ class Kdbx {
      * @param {KdbxGroup} group - parent group
      * @return {KdbxGroup}
      */
-    createGroup(name: string, group: KdbxGroup): KdbxGroup;
+    createGroup(group: KdbxGroup, name: string): KdbxGroup;
 
     /**
      * Adds new entry to group
@@ -930,11 +932,11 @@ class Kdbx {
 
     /**
      * Get group by uuid
-     * @param {KdbxUuid} uuid
+     * @param {KdbxUuid|string} uuid
      * @param {KdbxGroup} [parentGroup]
      * @return {KdbxGroup|undefined}
      */
-    getGroup(uuid: KdbxUuid, parentGroup?: KdbxGroup): KdbxGroup | undefined;
+    getGroup(uuid: KdbxUuid | string, parentGroup?: KdbxGroup): KdbxGroup | undefined;
 
     /**
      * Move object from one group to another
