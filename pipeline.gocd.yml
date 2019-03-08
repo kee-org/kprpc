@@ -1,7 +1,7 @@
 format_version: 3
 pipelines:
   kprpc:
-    group: defaultGroup
+    group: frontendLibs
     materials:
       mygit:
         type: configrepo
@@ -34,14 +34,6 @@ pipelines:
                     command: npm
                     arguments:
                       - "test"
-      - sanity:
-          jobs:
-            defaultJob:
-              tasks:
-                - exec:
-                    command: npm
-                    arguments:
-                      - "whoami"
       - publish:
           jobs:
             defaultJob:
