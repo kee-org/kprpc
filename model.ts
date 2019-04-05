@@ -537,7 +537,10 @@ export default class ModelMasher {
         };
     }
 
-    // Must match host name; if allowHostnameOnlyMatch is false, exact URL must be matched
+    // We can't just use the MatchAccuracyMethod found for the entry (in the conf parameter)
+    // because the actual MAM to apply may have been modified based upon the specific URL(s) that
+    // we're being asked to match against (the URLs shown in the browser rather than those
+    // contained within the entry)
     bestMatchAccuracyForAnyURL (e: KdbxEntry, conf: EntryConfig, url, urlSummary, mam: MatchAccuracyMethod, db: Kdbx) {
         let bestMatchSoFar = 0;
 

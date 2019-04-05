@@ -130,6 +130,47 @@ describe("URLMatchTest", async () => {
 
 });
 
+
+describe("URLMatchTestWithNoConfig", async () => {
+
+    function testCase (expectedResult: MatchAccuracyMethod, urlSearch: string, defaultMam: MatchAccuracyMethod, overrideURLs: string[] = [], overrideMethods: MatchAccuracyMethod[] = []) {
+        const name = "" + expectedResult + urlSearch + defaultMam + overrideURLs + overrideMethods;
+        test(name, () => {
+            const credentials = new kdbxweb.Credentials(kdbxweb.ProtectedValue.fromString("test"));
+            const newDb = kdbxweb.Kdbx.create(credentials, "My new db");
+            const group = newDb.createGroup(newDb.getDefaultGroup(), "subgroup");
+            const pwe = newDb.createEntry(group);
+
+            const urlSummary = model.getURLSummary(urlSearch, getDomain);
+            const dbConf = new DatabaseConfig();
+            dbConf.defaultMatchAccuracy = defaultMam;
+
+            if (overrideURLs.length > 0) {
+                for (let i = 0; i < overrideURLs.length; i++) {
+                    dbConf.matchedURLAccuracyOverrides[overrideURLs[i]] = overrideMethods[i];
+                }
+            }
+
+            const result = model.getMatchAccuracyMethod(pwe, urlSummary, dbConf);
+            expect(result).toEqual(expectedResult);
+        });
+    }
+
+    testCase(MatchAccuracyMethod.Domain, "https://www.kee.pm", MatchAccuracyMethod.Domain);
+    testCase(MatchAccuracyMethod.Hostname, "https://www.kee.pm", MatchAccuracyMethod.Hostname);
+    testCase(MatchAccuracyMethod.Exact, "https://www.kee.pm", MatchAccuracyMethod.Exact);
+    testCase(MatchAccuracyMethod.Domain, "https://www.kee.pm", MatchAccuracyMethod.Domain);
+    testCase(MatchAccuracyMethod.Domain, "https://subdom1.kee.pm", MatchAccuracyMethod.Hostname, ["kee.pm"], [MatchAccuracyMethod.Domain]);
+    testCase(MatchAccuracyMethod.Hostname, "https://subdom2.kee.pm", MatchAccuracyMethod.Hostname, [ "kee.pm" ], [MatchAccuracyMethod.Hostname]);
+    testCase(MatchAccuracyMethod.Domain, "https://www1.kee.pm", MatchAccuracyMethod.Domain, [ "keeeeeee.pm" ], [MatchAccuracyMethod.Hostname ]);
+    testCase(MatchAccuracyMethod.Hostname, "https://www1.kee.pm", MatchAccuracyMethod.Hostname, [ "keeeeeee.pm" ], [MatchAccuracyMethod.Hostname ]);
+    testCase(MatchAccuracyMethod.Exact, "https://www1.kee.pm", MatchAccuracyMethod.Exact, [ "keeeeeee.pm" ], [MatchAccuracyMethod.Hostname ]);
+    testCase(MatchAccuracyMethod.Hostname, "https://www1.kee.pm", MatchAccuracyMethod.Hostname, [ "kee.pm", "notkee.pm"], [MatchAccuracyMethod.Hostname, MatchAccuracyMethod.Hostname]);
+    testCase(MatchAccuracyMethod.Hostname, "https://www2.kee.pm", MatchAccuracyMethod.Domain, [ "kee.pm", "notkee.pm" ], [MatchAccuracyMethod.Hostname, MatchAccuracyMethod.Hostname]);
+    testCase(MatchAccuracyMethod.Hostname, "https://www2.kee.pm", MatchAccuracyMethod.Domain, [ "kee.pm", "notkee.pm"], [MatchAccuracyMethod.Hostname, MatchAccuracyMethod.Domain ]);
+
+});
+
 describe("CalculatesCorrectMatchAccuracyScore", async () => {
 
     function testCase (expectedResult: MatchAccuracyEnum, urlEntry: string, urlSearch: string, entryMam: MatchAccuracyMethod) {
