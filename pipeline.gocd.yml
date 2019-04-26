@@ -2,6 +2,8 @@ format_version: 3
 pipelines:
   kprpc:
     group: frontendLibs
+    environment_variables:
+      SKIP_PUBLISH_TO_NPM: ""
     materials:
       mygit:
         type: configrepo
@@ -39,7 +41,6 @@ pipelines:
             defaultJob:
               tasks:
                 - exec:
-                    command: npm
+                    command: /bin/bash
                     arguments:
-                      - "publish"
-                      - "dist"
+                      - "publish.sh"
