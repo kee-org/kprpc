@@ -13,6 +13,9 @@ export class EntryConfig {
     blockDomainOnlyMatch: boolean;
     formFieldList?: KeeLoginFieldInternal[];
     altURLs?: string[];
+    regExURLs?: string[];
+    regExBlockedURLs?: string[];
+    BlockedURLs?: string[];
     hTTPRealm?: string;
 
     public constructor (init?: Partial<EntryConfig>, mam?: MatchAccuracyMethod) {

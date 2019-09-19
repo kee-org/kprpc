@@ -244,10 +244,10 @@ const impl = {
                     let entryIsAMatch = false;
                     let bestMatchAccuracy = 0;
 
-                    if (conf["regExURLs"]) {
+                    if (conf.regExURLs) {
                         URLs.forEach(URL => {
-                            for (let i = 0; i < conf["regExURLs"].length; i++) {
-                                const regexPattern = conf["regExURLs"][i];
+                            for (let i = 0; i < conf.regExURLs!.length; i++) {
+                                const regexPattern = conf.regExURLs![i];
 
                                 try {
                                     if (regexPattern && new RegExp(regexPattern).test(URL)) {
@@ -286,9 +286,9 @@ const impl = {
                                 entryIsAMatch = false;
                                 break;
                             }
-                            if (conf["regExBlockedURLs"]) {
-                                for (let j = 0; j < conf["regExBlockedURLs"].length; j++) {
-                                    const pattern = conf["regExBlockedURLs"][j];
+                            if (conf.regExBlockedURLs) {
+                                for (let j = 0; j < conf.regExBlockedURLs.length; j++) {
+                                    const pattern = conf.regExBlockedURLs[j];
                                     try {
                                         if (pattern && new RegExp(pattern).test(URL)) {
                                             entryIsAMatch = false;
