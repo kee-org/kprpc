@@ -276,4 +276,9 @@ describe("CalculatesCorrectMatchAccuracyScore", async () => {
     testCase(MatchAccuracyEnum.HostnameAndPort, "http://docker:9000", "http://docker:9000/#/auth", MatchAccuracyMethod.Hostname);
     testCase(MatchAccuracyEnum.None, "http://docker:9000", "http://docker:9000/#/auth", MatchAccuracyMethod.Exact);
 
+    testCase(MatchAccuracyEnum.None, "chrome://keefox", "https://blah/account/", MatchAccuracyMethod.Domain);
+    testCase(MatchAccuracyEnum.None, "http://octopi.local", "https://blah/account/", MatchAccuracyMethod.Domain);
+    testCase(MatchAccuracyEnum.None, "https:/booking.com", "https://blah/account/", MatchAccuracyMethod.Domain);
+    testCase(MatchAccuracyEnum.None, "https://.homedepot.com", "https://blah/account/", MatchAccuracyMethod.Domain);
+
 });
