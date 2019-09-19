@@ -266,4 +266,14 @@ describe("CalculatesCorrectMatchAccuracyScore", async () => {
     testCase(MatchAccuracyEnum.HostnameAndPort, "https://twitter.com", "http://twitter.com", MatchAccuracyMethod.Hostname);
     testCase(MatchAccuracyEnum.None, "https://twitter.com", "http://twitter.com", MatchAccuracyMethod.Exact);
 
+    testCase(MatchAccuracyEnum.None, "http://download:80", "http://docker:9000/#/auth", MatchAccuracyMethod.Domain);
+    testCase(MatchAccuracyEnum.None, "http://download:80", "http://docker:9000/#/auth", MatchAccuracyMethod.Hostname);
+    testCase(MatchAccuracyEnum.None, "http://download:80", "http://docker:9000/#/auth", MatchAccuracyMethod.Exact);
+    testCase(MatchAccuracyEnum.Best, "http://docker:9000/#/auth", "http://docker:9000/#/auth", MatchAccuracyMethod.Domain);
+    testCase(MatchAccuracyEnum.Best, "http://docker:9000/#/auth", "http://docker:9000/#/auth", MatchAccuracyMethod.Hostname);
+    testCase(MatchAccuracyEnum.Best, "http://docker:9000/#/auth", "http://docker:9000/#/auth", MatchAccuracyMethod.Exact);
+    testCase(MatchAccuracyEnum.HostnameAndPort, "http://docker:9000", "http://docker:9000/#/auth", MatchAccuracyMethod.Domain);
+    testCase(MatchAccuracyEnum.HostnameAndPort, "http://docker:9000", "http://docker:9000/#/auth", MatchAccuracyMethod.Hostname);
+    testCase(MatchAccuracyEnum.None, "http://docker:9000", "http://docker:9000/#/auth", MatchAccuracyMethod.Exact);
+
 });
