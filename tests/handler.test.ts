@@ -47,9 +47,6 @@ describe("getURLSummary", async () => {
         expect(result.hostAndPort).toEqual("c:\\any\\path\\file");
         expect(result.port).toEqual("");
         expect(result.domain).toEqual("");
-        //TODO: The C# version tests for: Assert.IsNull(summary.Domain.RegistrableDomain);
-        // I think the difference between null and "" is insignificant in all real-world
-        // cases but this needs verification and refactoring if proven correct
     });
     test("malformedLocalFileWithExtension", async () => {
         const result = model.getURLSummary("c:\\any\\path\\file.ext", getDomain);
@@ -219,8 +216,7 @@ describe("CalculatesCorrectMatchAccuracyScore", async () => {
     testCase(MatchAccuracyEnum.Best, "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:1234", "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:1234", MatchAccuracyMethod.Domain);
     testCase(MatchAccuracyEnum.Best, "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:1234", "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:1234", MatchAccuracyMethod.Exact);
     testCase(MatchAccuracyEnum.None, "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:1234", "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]", MatchAccuracyMethod.Hostname);
-    // The test case below fails, demonstrating that the JS PSL library or our surrounding implementation contrasts with the C# version that succeeds. I don't know why it's different, nor whether it is a valid test configuration
-    // testCase(MatchAccuracyEnum.Hostname, "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:1234", "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]", MatchAccuracyMethod.Domain);
+    testCase(MatchAccuracyEnum.Hostname, "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:1234", "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]", MatchAccuracyMethod.Domain);
     testCase(MatchAccuracyEnum.None, "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:1234", "https://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]", MatchAccuracyMethod.Exact);
 
 

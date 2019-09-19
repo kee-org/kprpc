@@ -521,7 +521,12 @@ export default class ModelMasher {
         let hostname: string|null = null;
 
         if (!isFile) {
-            portIndex = hostAndPort.indexOf(":");
+            const ipv6Bracket = hostAndPort.lastIndexOf("]");
+            if (ipv6Bracket === hostAndPort.length - 1 && ipv6Bracket > 0) {
+                portIndex = -1;
+            } else {
+                portIndex = hostAndPort.lastIndexOf(":");
+            }
 
             // Protect against common malformed URL (Windows file path without file protocol)
             if (portIndex <= 1) { portIndex = -1; }
@@ -541,7 +546,7 @@ export default class ModelMasher {
     // because the actual MAM to apply may have been modified based upon the specific URL(s) that
     // we're being asked to match against (the URLs shown in the browser rather than those
     // contained within the entry)
-    bestMatchAccuracyForAnyURL (e: KdbxEntry, conf: EntryConfig, url, urlSummary, mam: MatchAccuracyMethod, db: Kdbx) {
+    bestMatchAccuracyForAnyURL (e: KdbxEntry, conf: EntryConfig, url, urlSummary: URLSummary, mam: MatchAccuracyMethod, db: Kdbx) {
         let bestMatchSoFar = 0;
 
         const URLs: string[] = [];
@@ -574,14 +579,14 @@ export default class ModelMasher {
             if (entryUrlSummary.hostAndPort === urlSummary.hostAndPort) { bestMatchSoFar = 30; }
 
             // If we need at least a matching hostname and port (equivalent to
-            // KeeFox <1.5) or we are missing the information needed to match
-            // more loose components of the URL we have to skip these last tests
-            if (mam === MatchAccuracyMethod.Hostname || !entryUrlSummary.domain || !urlSummary.domain) { continue; }
+            // KeeFox <1.5) we have to skip these last tests
+            if (mam === MatchAccuracyMethod.Hostname) { continue; }
 
             if (bestMatchSoFar < 20 &&
                 entryUrlSummary.hostname === urlSummary.hostname) { bestMatchSoFar = 20; }
 
             if (bestMatchSoFar < 10 &&
+                entryUrlSummary.domain &&
                 entryUrlSummary.domain === urlSummary.domain) { bestMatchSoFar = 10; }
         }
         return bestMatchSoFar;
