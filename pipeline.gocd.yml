@@ -9,38 +9,23 @@ pipelines:
         type: configrepo
       placeholdersDependency:
         pipeline: placeholders
-        stage: publish
+        stage: installBuildTestAndPublish
     stages:
-      - installDeps:
-          #clean_workspace: true
-          jobs:
-            defaultJob:
-              tasks:
-                - exec:
-                    command: npm
-                    arguments:
-                      - "ci"
-      - build:
-          jobs:
-            defaultJob:
-              tasks:
-                - exec:
-                    command: npm
-                    arguments:
-                      - "start"
-      - test:
-          jobs:
-            defaultJob:
-              tasks:
-                - exec:
-                    command: npm
-                    arguments:
-                      - "test"
-      - publish:
-          jobs:
-            defaultJob:
-              tasks:
-                - exec:
-                    command: /bin/bash
-                    arguments:
-                      - "publish.sh"
+      - installBuildTestAndPublish:
+          tasks:
+            - exec:
+                command: npm
+                arguments:
+                  - "ci"
+            - exec:
+                command: npm
+                arguments:
+                  - "start"
+            - exec:
+                command: npm
+                arguments:
+                  - "test"
+            - exec:
+                command: /bin/bash
+                arguments:
+                  - "publish.sh"
