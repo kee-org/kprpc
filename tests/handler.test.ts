@@ -20,9 +20,9 @@ beforeAll(() => {
     model = new ModelMasher(new KdbxPlaceholders(), getDomain, console);
 });
 
-describe("icons", async () => {
+describe("icons", () => {
 
-    test("mapStandardToBase64PNG returns correct 12th icon", async () => {
+    test("mapStandardToBase64PNG returns correct 12th icon", () => {
         // tslint:disable-next-line:max-line-length
         const b64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAALfSURBVDhPfVJLTxNRGJ3ShAXS8GgBa6ImvDSxGphOO512pjNMW4ZSEyqhpU0gndIXtIqCpfKo0bSSUKjWlSRKF4qRGGPCwl/gxpUr4j9g58YEdi7GOW2DuPEkJzlzvnPu3LlzifNobW01hCgq85Smq8sMs52w2zfAJYej9ISm94IUlUamEf8Xpt5eqmSxHKAgWSzBaZZdCDocKTDMsmkvRU1jhgyyjVod1/v6zGWa/jhmNgfigvBoxevdiXk8uaAgpEKiOA8NDzMsjqzaIWvltra29i2a/uAxm6cWR0eLSUla9zDMVD4QqBTD4V0QGh5myOBFJZvtAF0iZLVmEhy3lnS7V6Nu90O/IEQqsrzPkaTU3d3dA0I/l+V3kzwvI5NwudaSTuc6ukSBZffGrNbAis+3IzKMvzI3t48Sdmc0Gq+A0PBeRqPvPTbbHWTxKUW7vUosC8L2NM8vxCQplw+HK8zwsAuFEZJMfLl29eRzS8sJNDwrSYrI4ExwsEscVyJSTudGkONSYVFMbcrybldX10WdTqd/Y+w5Vqz9ymmzVlk2GI7hYReF2dlXONyw05mWHY4sMc/z+Zrh8aQ2Y7Fdg8Fg1Ov1utzg4NcjglDeqpxRNTzMCpHI3wU4LktkRXE7LAjphM+XexyJvBhlWT+2OzAwQC+0t/+UVULDc3HcRH5mphLzenNY4AHPbxFFUaxKNltw1e8v41dFJibuIXypo+Mytn5XJTQ8zMZYNoAsDr4wMrJHhByOTFIQ1lNe79rc+HhWzWkQJk0m32ut9ndZJTQ8FZq4JK0gi06IYTK1i1R2uw+mOC5+Y3DQghCSAklGvnV2Kp80GoUbGorAU6FBZpLjYujULhJwS/3GRZfrWe2hgdtWa/YXRSnftVplnKKwszMsimLxZn+/rfF4hmaV2rokmuI8X1VcLuW0qUmJkmQVXn1UyyD7X1xYcjoPf9D0yZF6ke6bTIfw6qPzIIg/M/L20z2KoN4AAAAASUVORK5CYII=";
         const result = mapStandardToBase64PNG(12);
@@ -30,7 +30,7 @@ describe("icons", async () => {
     });
 });
 
-describe("getURLSummary", async () => {
+describe("getURLSummary", () => {
     test("standardHttpWithPath", async () => {
         const result = model.getURLSummary("http://www.google.com/any/path", getDomain);
         expect(result.hostAndPort).toEqual("www.google.com");
@@ -87,7 +87,7 @@ describe("getURLSummary", async () => {
     });
 });
 
-describe("URLMatchTest", async () => {
+describe("URLMatchTest", () => {
 
     function testCase (expectedResult: MatchAccuracyMethod, urlSearch: string, entryMam: MatchAccuracyMethod, defaultMam: MatchAccuracyMethod, overrideURLs: string[] = [], overrideMethods: MatchAccuracyMethod[] = []) {
         const name = "" + expectedResult + urlSearch + entryMam + defaultMam + overrideURLs + overrideMethods;
@@ -128,7 +128,7 @@ describe("URLMatchTest", async () => {
 });
 
 
-describe("URLMatchTestWithNoConfig", async () => {
+describe("URLMatchTestWithNoConfig", () => {
 
     function testCase (expectedResult: MatchAccuracyMethod, urlSearch: string, defaultMam: MatchAccuracyMethod, overrideURLs: string[] = [], overrideMethods: MatchAccuracyMethod[] = []) {
         const name = "" + expectedResult + urlSearch + defaultMam + overrideURLs + overrideMethods;
@@ -168,7 +168,7 @@ describe("URLMatchTestWithNoConfig", async () => {
 
 });
 
-describe("CalculatesCorrectMatchAccuracyScore", async () => {
+describe("CalculatesCorrectMatchAccuracyScore", () => {
 
     function testCase (expectedResult: MatchAccuracyEnum, urlEntry: string, urlSearch: string, entryMam: MatchAccuracyMethod) {
         const name = "" + expectedResult + urlEntry + urlSearch + entryMam;
