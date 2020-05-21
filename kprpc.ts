@@ -341,6 +341,7 @@ const mergeEntries = function (destination: KdbxEntry, source: KdbxEntry, urlMer
     destination.icon = source.icon;
     destination.customIcon = source.customIcon;
 
+    destination.fields["Title"] = source.fields["Title"];
     destination.fields["UserName"] = source.fields["UserName"];
     destination.fields["Password"] = kdbxweb.ProtectedValue.fromString(source.fields["Password"].getText());
     destConfig.formFieldList = sourceConfig.formFieldList;
