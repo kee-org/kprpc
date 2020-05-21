@@ -75,7 +75,7 @@ export default class ModelMasher {
         if (conf.formFieldList) {
             conf.formFieldList.forEach(ff => {
                 let enablePlaceholders = false;
-                let displayName = ff.name;
+                let displayName = ff.displayName || ff.name;
                 let ffValue = ff.value;
 
                 if (!config.fullDetail && ff.type !== "FFTusername") return;
@@ -253,7 +253,7 @@ export default class ModelMasher {
             } else {
                 ffl.push({
                     name: ff.name,
-                    displayName: ff.name,
+                    displayName: ff.displayName || ff.name,
                     value: ff.value, // No need to protect this value since it'll be stored in a string field that is always protected anyway
                     type: ff.type,
                     id: ff.id,

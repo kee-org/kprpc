@@ -71,8 +71,19 @@ export class KeeEntrySummary {
     usernameName: string;
 }
 
+// This is an indication of the class that Kee Vault expects to be working with
+// but is otherwise unused, may get out of sync with reality and will become
+// obsolete when Kee Vault is rewritten in TypeScript. Until then, note that
+// the fundamental difference between what the KeePassRPC protocol delivers and
+// what Kee Vault requires is due to KeeWeb framework's incompatibility with
+// the object property name "id"
 // tslint:disable-next-line:class-name
 export class keeLoginField {
+
+    // The name displayed to the user to help identify this field.
+    // Two MAGIC names exist to identify the standard username and
+    // password fields - "KeePass username" and "KeePass password"
+    displayName: string;
 
     // "name" attribute on the HTML form element
     name: string;
@@ -95,10 +106,12 @@ export class keeLoginField {
     placeholderHandling: PlaceholderHandling;
 }
 
-// This is a bit of a hack - based off of the old DTO above but used as a bit of a
-// transient type definition that won't be complete until we have a much more
-// complete implementation of the protocol and clearer interaction with calling code.
 export class KeeLoginFieldInternal {
+
+    // The name displayed to the user to help identify this field.
+    // Two MAGIC names exist to identify the standard username and
+    // password fields - "KeePass username" and "KeePass password"
+    displayName: string;
 
     // "name" attribute on the HTML form element
     name: string;
