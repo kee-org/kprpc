@@ -361,7 +361,8 @@ const mergeEntries = function (destination: KdbxEntry, source: KdbxEntry, urlMer
     /// <param name="urlMergeMode">1= Replace the entry's URL (but still fill forms if you visit the old URL)
     /// 2= Replace the entry's URL (delete the old URL completely)
     /// 3= Keep the old entry's URL (but still fill forms if you visit the new URL)
-    /// 4= Keep the old entry's URL (don't add the new URL to the entry)</param>
+    /// 4= Keep the old entry's URL (don't add the new URL to the entry)
+    /// 5= No merge. Delete all URLs and replace with those supplied in the new entry data</param>
     switch (urlMergeMode) {
     case 1:
         mergeInNewURLs(destURLs, sourceURLs);
@@ -378,6 +379,11 @@ const mergeEntries = function (destination: KdbxEntry, source: KdbxEntry, urlMer
         }
         break;
     case 4:
+        // No changes to URLs
+        break;
+    case 5:
+        destURLs = sourceURLs;
+        break;
     default:
         // No changes to URLs
         break;
@@ -530,7 +536,8 @@ export default class KPRPC {
                 "KPRPC_FEATURE_BROWSER_HOSTED",
                 "KPRPC_FEATURE_KEE_BRAND",
                 "KPRPC_FIELD_DEFAULT_NAME_AND_ID_EMPTY",
-                "BROWSER_SETTINGS_SYNC"
+                "BROWSER_SETTINGS_SYNC",
+                "KPRPC_FEATURE_ENTRY_URL_REPLACEMENT"
             ]});
         });
     }
