@@ -355,7 +355,7 @@ const mergeEntries = function (destination: KdbxEntry, source: KdbxEntry, urlMer
     if (destConfig.altURLs) { destURLs = destURLs.concat(destConfig.altURLs); }
 
     let sourceURLs: string[] = [];
-    sourceURLs.push(destination.fields["URL"]);
+    sourceURLs.push(source.fields["URL"]);
     if (sourceConfig.altURLs) { sourceURLs = sourceURLs.concat(sourceConfig.altURLs); }
 
     /// <param name="urlMergeMode">1= Replace the entry's URL (but still fill forms if you visit the old URL)
