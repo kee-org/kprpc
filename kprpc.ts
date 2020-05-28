@@ -22,7 +22,14 @@ implementation is created for Kee Vault.
 
 */
 
-type FileModel = {db: Kdbx, getEntry: (a: any) => any, subId: (a: any) => any, reload: () => void, id: string};
+type FileModel = {
+    db: Kdbx,
+    getEntry: (a: any) => any,
+    subId: (a: any) => any,
+    reload: () => void,
+    id: string,
+    setModified: () => void
+};
 
 let getEntry: Function;
 let ping: Function;
@@ -134,7 +141,7 @@ const impl = {
 
         // Remove the temporary entry
         chosenFile.db.move(tempEntry, null);
-
+        chosenFile.setModified();
         chosenFile.reload();
 
         if (save) syncFile(chosenFile, { skipValidation: true, startedByUser: false });
