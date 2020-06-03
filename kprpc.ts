@@ -271,8 +271,8 @@ const impl = {
                         });
                     }
 
-                    // Check for matching URLs for the page or HTTPAuth containing the form
-                    if (!entryIsAMatch && (lst !== "LSTnoForms" || lst !== "LSTnoRealms")) {
+                    // Check for matching URLs for the page or HTTPAuth
+                    if (!entryIsAMatch) {
                         URLs.forEach(URL => {
                             const mam = modelMasher.getMatchAccuracyMethod(entry, URLHostnameAndPorts[URL], dbConfig);
                             const accuracy = modelMasher.bestMatchAccuracyForAnyURL(entry, conf, URL, URLHostnameAndPorts[URL], mam, file.db);
