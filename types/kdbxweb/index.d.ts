@@ -478,7 +478,7 @@ class KdbxContext {
  * @constructor
  */
 class Credentials {
-    constructor(password: ProtectedValue, keyFile?: string | ArrayBuffer | Uint8Array);
+    constructor(password: ProtectedValue, keyFile?: string | ArrayBuffer | Uint8Array, challengeResponse?: unknown);
 
     /**
      * Set password
@@ -488,7 +488,7 @@ class Credentials {
 
     /**
      * Set keyfile
-     * @param {ArrayBuffer|Uint8Array} [keyFile]
+     * @param {ArrayBuffer|Uint8Array|null} [keyFile]
      */
     setKeyFile(keyFile?: ArrayBuffer | Uint8Array): void;
 
