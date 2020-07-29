@@ -544,7 +544,8 @@ export default class KPRPC {
                 "KPRPC_FEATURE_KEE_BRAND",
                 "KPRPC_FIELD_DEFAULT_NAME_AND_ID_EMPTY",
                 "BROWSER_SETTINGS_SYNC",
-                "KPRPC_FEATURE_ENTRY_URL_REPLACEMENT"
+                "KPRPC_FEATURE_ENTRY_URL_REPLACEMENT",
+                "KPRPC_SECURITY_FIX_20200729"
             ]});
         });
     }
