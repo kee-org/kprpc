@@ -1,6 +1,6 @@
 {
   "name": "kprpc",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "A KeePassRPC server",
   "main": "main.js",
   "types": "main.d.ts",
@@ -24,7 +24,6 @@
   "dependencies": {
     "jrpc": "3.1.2",
     "kdbx-placeholders": "^1.1.15",
-    "kdbxweb": "1.7.1",
-    "secure-remote-password": "^0.3.1"
+    "kdbxweb": "1.7.1"
   }
 }
