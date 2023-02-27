@@ -1,6 +1,6 @@
 {
   "name": "kprpc",
-  "version": "1.1.9",
+  "version": "1.2.0",
   "description": "A KeePassRPC server",
   "main": "main.js",
   "types": "main.d.ts",
@@ -24,6 +24,6 @@
   "dependencies": {
     "jrpc": "3.1.2",
     "kdbx-placeholders": "^1.1.20",
-    "kdbxweb": "github:kee-org/kdbxweb#7d15c50ed2b05542c73526b4056a01256daf6c15"
+    "kdbxweb": "github:kee-org/kdbxweb#a1edd4b7999f4da11dd77337454928f2a8c49298"
   }
 }

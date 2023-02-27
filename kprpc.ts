@@ -237,12 +237,9 @@ const impl = {
                 const dbConfig = modelMasher.getDatabaseKPRPCConfig(file.db);
 
                 const homeGroup = modelMasher.getRootPwGroup(file.db);
-                homeGroup.forEach((entry, group) => {
+                homeGroup.forEachFilteredGroup((entry, group) => {
                     // not interested in groups
                     if (group || !entry) return;
-
-                    // ignore if it's in the recycle bin
-                    if (entry.parentGroup.uuid.equals(file.db.meta.recycleBinUuid)) return;
 
                     const conf = modelMasher.getEntryConfig(entry, dbConfig);
 
@@ -317,6 +314,10 @@ const impl = {
                             {fileName: file.id, active: true},
                             {fullDetail: true, matchAccuracy: bestMatchAccuracy}));
                     }
+                }, undefined, (group) => {
+                    // ignore if it's in the recycle bin
+                    if (group.uuid.equals(file.db.meta.recycleBinUuid)) return false;
+                    return true;
                 });
             });
 

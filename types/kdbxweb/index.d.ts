@@ -641,11 +641,19 @@ class KdbxGroup {
     write(parentNode: Node, ctx: KdbxContext): void;
 
     /**
-     * Invokes callback for each entry in recursive way
+     * Invokes callback for each entry and group in recursive way
      * @param {function} callback - will be invoked with entry or group argument
      * @param {function} [thisArg] - callback context
      */
     forEach(callback: (entry?: KdbxEntry, group?: KdbxGroup) => void, thisArg?: ()=>any): void;
+
+    /**
+     * Invokes callback for each entry and group in recursive way
+     * @param {function} callback - will be invoked with entry or group argument
+     * @param {function} [thisArg] - callback context
+     * @param {function} [filter] - optional filter - return false to ignore and avoid recursion into group
+     */
+    forEachFilteredGroup(callback: (entry?: KdbxEntry, group?: KdbxGroup) => void, thisArg?: ()=>any, filter?: (group: KdbxGroup) => boolean): void;
 
     /**
      * Merge group with remote group
