@@ -178,7 +178,7 @@ describe("CalculatesCorrectMatchAccuracyScore", () => {
             const newDb = kdbxweb.Kdbx.create(credentials, "My new db");
             const group = newDb.createGroup(newDb.getDefaultGroup(), "subgroup");
             const pwe = newDb.createEntry(group);
-            pwe.fields.URL = urlEntry;
+            pwe.fields.set("URL", urlEntry);
             const conf = new EntryConfig(undefined, entryMam);
             model.setEntryConfig(pwe, conf);
             const urlSummary = model.getURLSummary(urlSearch, getDomain);
