@@ -242,9 +242,6 @@ const impl = {
                     if (groupOrEntry instanceof KdbxGroup && groupOrEntry.uuid.equals(file.db.meta.recycleBinUuid)) return false;
                     return true;
                 })) {
-
-                //}
-               // homeGroup.forEachFilteredGroup((entry, group) => {
                     // not interested in groups
                     if (it instanceof KdbxGroup) continue;
 
@@ -321,12 +318,6 @@ const impl = {
                             {fileName: file.id, active: true},
                             {fullDetail: true, matchAccuracy: bestMatchAccuracy}));
                     }
-            //     }, undefined, (group) => {
-            //         // ignore if it's in the recycle bin
-            //         if (group.uuid.equals(file.db.meta.recycleBinUuid)) return false;
-            //         return true;
-            //     });
-            // });
                 }
             });
 
