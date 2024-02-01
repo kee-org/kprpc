@@ -386,6 +386,8 @@ export default class ModelMasher {
         let json;
 
         try {
+            //TODO: try to load from customdata and record if succeed and convert to v1 for use by rest of existing library code
+            // Use an EntryConfigConverted class with one extra bool to track when this was done ( check with instanceof ...)
             json = JSON.parse((entryIn.fields.get("KPRPC JSON") as ProtectedValue).getText());
         } catch (e) {
             // do nothing
@@ -407,6 +409,7 @@ export default class ModelMasher {
 
     setEntryConfig (entry: KdbxEntry, config: EntryConfig) {
         entry.fields.set("KPRPC JSON", ProtectedValue.fromString(JSON.stringify(config)));
+        //TODO: also save to customdata (convert first) assuming we originally loaded a v2 config
     }
 
     getMatchAccuracyMethod (entry: KdbxEntry, urlsum: URLSummary, dbConfig: DatabaseConfig): MatchAccuracyMethod {
