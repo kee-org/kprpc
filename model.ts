@@ -1,10 +1,10 @@
 import { ProtectedValue, KdbxEntry, Kdbx, KdbxGroup, KdbxUuid, ByteUtils, KdbxEntryField } from "kdbxweb";
 import { toBase64PNG, mapStandardToBase64PNG, searchBase64PNGToStandard, fromBase64PNG } from "./icons";
-import { EntryConfig } from "./EntryConfig";
+import { EntryConfig, FieldType } from "./EntryConfig";
 import { DatabaseConfig } from "./DatabaseConfig";
 import { MatchAccuracyMethod } from "./MatchAccuracyMethod";
 import { URLSummary } from "./URLSummary";
-import { Database, PlaceholderHandling, KeeEntry, MatchAccuracyEnum, KeeEntrySummary } from "./kfDataModel";
+import { Database, PlaceholderHandling, KeeEntry, MatchAccuracyEnum, KeeEntrySummary, keeFormFieldType } from "./kfDataModel";
 import { KdbxPlaceholders } from "kdbx-placeholders";
 import { hex2base64 } from "./Hex";
 
@@ -653,5 +653,75 @@ function* entryGenerator (group: any) {
     }
     for (let i=0; i<group.groups.length; i++) {
         yield* entryGenerator(group.groups[i]);
+    }
+}
+
+export class Utilities {
+    static FormFieldTypeToHtmlType(fft: keeFormFieldType): string {
+        if (fft === keeFormFieldType.password)
+            return "password";
+        if (fft === keeFormFieldType.select)
+            return "select-one";
+        if (fft === keeFormFieldType.radio)
+            return "radio";
+        if (fft === keeFormFieldType.checkbox)
+            return "checkbox";
+        return "text";
+    }
+
+    static FormFieldTypeToFieldType(fft: keeFormFieldType): FieldType {
+        let type: FieldType = FieldType.Text;
+        if (fft === keeFormFieldType.password)
+            type = FieldType.Password;
+        else if (fft === keeFormFieldType.select)
+            type = FieldType.Existing;
+        else if (fft === keeFormFieldType.radio)
+            type = FieldType.Existing;
+        else if (fft === keeFormFieldType.username)
+            type = FieldType.Text;
+        else if (fft === keeFormFieldType.checkbox)
+            type = FieldType.Toggle;
+        return type;
+    }
+
+    static FieldTypeToDisplay(type: FieldType, titleCase: boolean): string {
+        let typeD: string = "Text";
+        if (type === FieldType.Password)
+            typeD = "Password";
+        else if (type === FieldType.Existing)
+            typeD = "Existing";
+        else if (type === FieldType.Text)
+            typeD = "Text";
+        else if (type === FieldType.Toggle)
+            typeD = "Toggle";
+        if (!titleCase)
+            return typeD.toLowerCase();
+        return typeD;
+    }
+
+    static FieldTypeToHtmlType(ft: FieldType): string {
+        switch (ft) {
+            case FieldType.Password:
+                return "password";
+            case FieldType.Existing:
+                return "radio";
+            case FieldType.Toggle:
+                return "checkbox";
+            default:
+                return "text";
+        }
+    }
+
+    static FieldTypeToFormFieldType(ft: FieldType): keeFormFieldType {
+        switch (ft) {
+            case FieldType.Password:
+                return keeFormFieldType.password;
+            case FieldType.Existing:
+                return keeFormFieldType.radio;
+            case FieldType.Toggle:
+                return keeFormFieldType.checkbox;
+            default:
+                return keeFormFieldType.text;
+        }
     }
 }
