@@ -1,6 +1,6 @@
 import { ProtectedValue, KdbxEntry, Kdbx, KdbxGroup, KdbxUuid, ByteUtils, KdbxEntryField } from "kdbxweb";
 import { toBase64PNG, mapStandardToBase64PNG, searchBase64PNGToStandard, fromBase64PNG } from "./icons";
-import { EntryConfig, FieldType } from "./EntryConfig";
+import { EntryConfig, EntryConfigV2, FieldType } from "./EntryConfig";
 import { DatabaseConfig } from "./DatabaseConfig";
 import { MatchAccuracyMethod } from "./MatchAccuracyMethod";
 import { URLSummary } from "./URLSummary";
@@ -380,6 +380,30 @@ export default class ModelMasher {
             });
         }
         return grp;
+    }
+
+    getEntryConfigV1Only (entryIn: KdbxEntry, dbConfig: DatabaseConfig) {
+        let obj;
+
+        try {
+            obj = JSON.parse((entryIn.fields.get("KPRPC JSON") as ProtectedValue).getText());
+            return new EntryConfig(obj);
+        } catch (e) {
+            // do nothing
+        }
+        return null;
+    }
+
+    getEntryConfigV2Only (entryIn: KdbxEntry, dbConfig: DatabaseConfig) {
+        let obj;
+
+        try {
+            obj = JSON.parse(entryIn.customData?.get("KPRPC JSON")?.value ?? '');
+            return new EntryConfigV2(obj);
+        } catch (e) {
+            // do nothing
+        }
+        return null;
     }
 
     getEntryConfig (entryIn: KdbxEntry, dbConfig: DatabaseConfig) {

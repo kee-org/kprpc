@@ -1,7 +1,6 @@
 import { IGuidService } from "./GuidService";
 import { MatchAccuracyMethod } from "./MatchAccuracyMethod";
 import * as kfDm from "./kfDataModel";
-import { XmlNames } from "kdbxweb";
 import { Utilities } from "./model";
 
 export class EntryConfig {
@@ -52,7 +51,7 @@ export class EntryConfig {
             conf2.behaviour = EntryAutomationBehaviour.NeverAutoFillNeverAutoSubmit;
         else if (this.alwaysAutoSubmit)
             conf2.behaviour = EntryAutomationBehaviour.AlwaysAutoFillAlwaysAutoSubmit;
-        // ... (rest of the if-else conditions)
+        //TODO:  ... (rest of the if-else conditions)
 
         conf2.blockedUrls = this.BlockedURLs;
         conf2.httpRealm = this.hTTPRealm;
@@ -97,7 +96,7 @@ export class EntryConfig {
                     }
                     fields.push(f);
                 }
-                // ... (rest of the if-else conditions for password, and default field)
+                //TODO:  ... (rest of the if-else conditions for password, and default field)
             });
         }
 
@@ -124,6 +123,7 @@ export class EntryConfig {
 }
 
 export class EntryConfigConverted extends EntryConfig {
+    // @ts-ignore
     private _typeDiscriminator = true;
     public constructor(init?: Partial<EntryConfigConverted>, mam?: MatchAccuracyMethod) {
         super(init, mam);
