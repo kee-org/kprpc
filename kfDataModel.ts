@@ -132,6 +132,10 @@ export class KeeLoginFieldInternal {
     page: number;
 
     placeholderHandling: PlaceholderHandling;
+
+    public constructor(init?: Partial<KeeLoginFieldInternal>) {
+        Object.assign(this, init);
+    }
 }
 
 export enum keeFormFieldType {

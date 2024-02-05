@@ -164,6 +164,11 @@ export class EntryConfigConverted extends EntryConfig {
     public constructor(init?: Partial<EntryConfigConverted>, mam?: MatchAccuracyMethod) {
         super(init, mam);
     }
+    // Override toJSON method
+    public toJSON() {
+        let { _typeDiscriminator, ...other } = this;
+        return other;
+    }
 }
 
 export enum EntryMatcherType {
@@ -325,66 +330,116 @@ export class EntryConfigV2 {
     public convertToV1(guidService: IGuidService): EntryConfigConverted {
         const conf1: EntryConfigConverted = new EntryConfigConverted();
 
+        conf1.version = 1;
+        conf1.hTTPRealm = this.httpRealm || '';
+        conf1.formFieldList = this.convertFields(this.fields ?? [], guidService);
+
         switch (this.behaviour ?? EntryAutomationBehaviour.Default) {
             case EntryAutomationBehaviour.AlwaysAutoFill:
                 conf1.alwaysAutoFill = true;
-                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoFill = false;
+                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoSubmit = false;
                 break;
             case EntryAutomationBehaviour.NeverAutoSubmit:
                 conf1.alwaysAutoFill = false;
-                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoFill = false;
+                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoSubmit = true;
                 break;
             case EntryAutomationBehaviour.AlwaysAutoFillAlwaysAutoSubmit:
                 conf1.alwaysAutoFill = true;
-                conf1.alwaysAutoSubmit = true;
                 conf1.neverAutoFill = false;
+                conf1.alwaysAutoSubmit = true;
                 conf1.neverAutoSubmit = false;
                 break;
             case EntryAutomationBehaviour.NeverAutoFillNeverAutoSubmit:
                 conf1.alwaysAutoFill = false;
-                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoFill = true;
+                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoSubmit = true;
                 break;
             case EntryAutomationBehaviour.AlwaysAutoFillNeverAutoSubmit:
                 conf1.alwaysAutoFill = true;
-                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoFill = false;
+                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoSubmit = true;
                 break;
             case EntryAutomationBehaviour.Default:
                 conf1.alwaysAutoFill = false;
-                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoFill = false;
+                conf1.alwaysAutoSubmit = false;
                 conf1.neverAutoSubmit = false;
                 break;
         }
 
+        conf1.priority = 0;
+
         conf1.BlockedURLs = this.blockedUrls;
-        conf1.hTTPRealm = this.httpRealm || undefined;
         conf1.altURLs = this.altUrls;
         conf1.regExURLs = this.regExUrls;
         conf1.regExBlockedURLs = this.regExBlockedUrls;
-        conf1.version = 1;
+
+        conf1.hide = this.matcherConfigs.some(mc => mc.matcherType == EntryMatcherType.Hide);
+
+        const urlMatcher = this.matcherConfigs.find(mc => mc.matcherType == EntryMatcherType.Url);
+        conf1.setMatchAccuracyMethod(urlMatcher?.urlMatchMethod ?? MatchAccuracyMethod.Domain);
 
 
-//TODO: fields, hide, MAM
+        return conf1;
+    }
 
+    public convertFields(fields: Field[], guidService: IGuidService): kfDm.KeeLoginFieldInternal[] {
+        const formFieldList: kfDm.KeeLoginFieldInternal[] = [];
 
-        const mcList: EntryMatcherConfig[] = [
-            { matcherType: EntryMatcherType.Url, urlMatchMethod: this.getMatchAccuracyMethod(true) }
-        ];
-        if (this.hide) {
-            mcList.push({ matcherType: EntryMatcherType.Hide });
+        for (let ff of fields) {
+
+            let displayName = ff.name;
+            let ffValue = ff.value;
+            let htmlName = "";
+            let htmlId = "";
+            let htmlType = Utilities.FieldTypeToFormFieldType(ff.type);
+
+            // Currently we can only have one custommatcher. If that changes and someone tries
+            // to use this old version with a newer DB things will break so they will have to
+            // upgrade again to fix it.
+            let customMatcherConfig = ff.matcherConfigs.find(mc => mc.customMatcher != null);
+            if (customMatcherConfig != null) {
+                htmlName = customMatcherConfig.customMatcher?.names?.[0] ?? "";
+
+                htmlId = customMatcherConfig.customMatcher?.ids?.[0] ?? "";
+
+                if (customMatcherConfig.customMatcher?.types != null) {
+                    htmlType = Utilities.FormFieldTypeFromHtmlTypeOrFieldType(
+                        customMatcherConfig.customMatcher.types[0] ?? "", ff.type);
+                }
+            }
+
+            if (ff.type == FieldType.Password && ff.valuePath == "Password") {
+                displayName = "KeePass password";
+                htmlType = kfDm.keeFormFieldType.password;
+                ffValue = "{PASSWORD}";
+            }
+            else if (ff.type == FieldType.Text && ff.valuePath == "UserName") {
+                displayName = "KeePass username";
+                htmlType = kfDm.keeFormFieldType.username;
+                ffValue = "{USERNAME}";
+            }
+
+            if (ffValue !== "") {
+                formFieldList.push(new kfDm.KeeLoginFieldInternal({
+                    name: htmlName,
+                    displayName: displayName,
+                    value: ffValue,
+                    type: htmlType,
+                    id: htmlId,
+                    page: ff.page,
+                    placeholderHandling: ff.placeholderHandling ?? kfDm.PlaceholderHandling.Default,
+                }));
+            }
         }
-        conf2.matcherConfigs = mcList;
-        conf2.fields = this.convertFields(this.formFieldList ?? [], guidService);
 
-        return conf2;
+        return formFieldList;
     }
 
 }
