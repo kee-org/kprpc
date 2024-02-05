@@ -441,7 +441,7 @@ export default class ModelMasher {
         if (urlsum && urlsum.domain && dbConfig.matchedURLAccuracyOverrides[urlsum.domain]) {
             return dbConfig.matchedURLAccuracyOverrides[urlsum.domain];
         } else {
-            return conf.getMatchAccuracyMethod();
+            return conf.getMatchAccuracyMethod() ?? MatchAccuracyMethod.Domain;
         }
     }
 

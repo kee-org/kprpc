@@ -25,9 +25,10 @@ export class EntryConfig {
         if (mam !== undefined) this.setMatchAccuracyMethod(mam);
     }
 
-    public getMatchAccuracyMethod() {
+    public getMatchAccuracyMethod(omitIfDefault: boolean = false) {
         if (this.blockHostnameOnlyMatch) return MatchAccuracyMethod.Exact;
         else if (this.blockDomainOnlyMatch) return MatchAccuracyMethod.Hostname;
+        else if (omitIfDefault) return undefined;
         else return MatchAccuracyMethod.Domain;
     }
 
@@ -51,23 +52,28 @@ export class EntryConfig {
             conf2.behaviour = EntryAutomationBehaviour.NeverAutoFillNeverAutoSubmit;
         else if (this.alwaysAutoSubmit)
             conf2.behaviour = EntryAutomationBehaviour.AlwaysAutoFillAlwaysAutoSubmit;
-        //TODO:  ... (rest of the if-else conditions)
+        else if (this.alwaysAutoFill && this.neverAutoSubmit)
+            conf2.behaviour = EntryAutomationBehaviour.AlwaysAutoFillNeverAutoSubmit;
+        else if (this.neverAutoSubmit)
+            conf2.behaviour = EntryAutomationBehaviour.NeverAutoSubmit;
+        else if (this.alwaysAutoFill)
+            conf2.behaviour = EntryAutomationBehaviour.AlwaysAutoFill;
+        //else default (can be persisted as null)
 
         conf2.blockedUrls = this.BlockedURLs;
-        conf2.httpRealm = this.hTTPRealm;
+        conf2.httpRealm = this.hTTPRealm || undefined;
         conf2.altUrls = this.altURLs;
         conf2.regExUrls = this.regExURLs;
         conf2.regExBlockedUrls = this.regExBlockedURLs;
         conf2.authenticationMethods = ["password"];
-        conf2.fields = this.convertFields(this.formFieldList ?? [], guidService);
         const mcList: EntryMatcherConfig[] = [
-            { matcherType: EntryMatcherType.Url, urlMatchMethod: this.getMatchAccuracyMethod() }
+            { matcherType: EntryMatcherType.Url, urlMatchMethod: this.getMatchAccuracyMethod(true) }
         ];
         if (this.hide) {
             mcList.push({ matcherType: EntryMatcherType.Hide });
         }
-
         conf2.matcherConfigs = mcList;
+        conf2.fields = this.convertFields(this.formFieldList ?? [], guidService);
 
         return conf2;
     }
@@ -80,12 +86,12 @@ export class EntryConfig {
             formFieldList.forEach(ff => {
                 if (ff.value === "{USERNAME}") {
                     usernameFound = true;
-                    const mc = ff.id || ff.name
+                    const mc = !(ff.id || ff.name)
                         ? { matcherType: FieldMatcherType.UsernameDefaultHeuristic }
                         : FieldMatcherConfig.forSingleClientMatch(ff.id, ff.name, ff.type);
                     const f: Field = new Field({
-                        page: Math.max(ff.page, 1),
                         valuePath: "UserName",
+                        page: Math.max(ff.page, 1),
                         uuid: guidService.NewGuid(),
                         type: FieldType.Text,
                         matcherConfigs: [mc]
@@ -95,8 +101,39 @@ export class EntryConfig {
                         f.placeholderHandling = ff.placeholderHandling;
                     }
                     fields.push(f);
+                } else if (ff.value === "{PASSWORD}") {
+                    passwordFound = true;
+                    const mc = !(ff.id || ff.name)
+                        ? { matcherType: FieldMatcherType.PasswordDefaultHeuristic }
+                        : FieldMatcherConfig.forSingleClientMatch(ff.id, ff.name, ff.type);
+                    const f: Field = new Field({
+                        valuePath: "Password",
+                        page: Math.max(ff.page, 1),
+                        uuid: guidService.NewGuid(),
+                        type: FieldType.Password,
+                        matcherConfigs: [mc]
+                    });
+                    if (ff.placeholderHandling !== kfDm.PlaceholderHandling.Default) {
+                        f.placeholderHandling = ff.placeholderHandling;
+                    }
+                    fields.push(f);
                 }
-                //TODO:  ... (rest of the if-else conditions for password, and default field)
+                else {
+                    const mc = FieldMatcherConfig.forSingleClientMatch(ff.id, ff.name, ff.type);
+                    const f: Field = new Field({
+                        name: ff.displayName,
+                        valuePath: ".",
+                        page: Math.max(ff.page, 1),
+                        uuid: guidService.NewGuid(),
+                        type: Utilities.FormFieldTypeToFieldType(ff.type),
+                        matcherConfigs: [mc],
+                        value: ff.value
+                    });
+                    if (ff.placeholderHandling !== kfDm.PlaceholderHandling.Default) {
+                        f.placeholderHandling = ff.placeholderHandling;
+                    }
+                    fields.push(f);
+                }
             });
         }
 
@@ -131,14 +168,14 @@ export class EntryConfigConverted extends EntryConfig {
 }
 
 export enum EntryMatcherType {
-    Custom = 0,
-    Hide = 1,
-    Url = 2, // magic type that uses primary URL + the 4 URL data arrays and current urlmatchconfig to determine a match
+    Custom = "Custom",
+    Hide = "Hide",
+    Url = "Url", // magic type that uses primary URL + the 4 URL data arrays and current urlmatchconfig to determine a match
 }
 
 export enum MatchAction { TotalMatch, TotalBlock, WeightedMatch, WeightedBlock }
 
-export enum MatcherLogic { Client, All, Any }
+export enum MatcherLogic { Client = "Client", All = "All", Any = "Any" }
 
 export enum EntryAutomationBehaviour {
     Default,
@@ -149,7 +186,7 @@ export enum EntryAutomationBehaviour {
     AlwaysAutoFillNeverAutoSubmit
 }
 
-export enum FieldType { Text, Password, Existing, Toggle, Otp, SomeChars }
+export enum FieldType { Text = "Text", Password = "Password", Existing = "Existing", Toggle = "Toggle", Otp = "Otp", SomeChars = "SomeChars" }
 
 // For standard KeePass entries with no KPRPC-specific config, we can save storage space (and one day data-exchange bytes) by just recording that the client should use a typical locator to work out which field is the best match, because we have no additional information to help with this task.
 // We could extend this to very common additional heuristics in future (e.g. if many sites and entries end up with a custom locator with Id and Name == "password"). That would be pretty complex though so probably won't be worthwhile.
@@ -199,7 +236,6 @@ export class FieldMatcherConfig {
         {
             customMatcher: new FieldMatcher(
             {
-                matchLogic: MatcherLogic.Client,
                 ids: !id ? [] : [id],
                 names: !name ? [] : [name],
                 types: !htmlType ? [] : [htmlType],
@@ -249,7 +285,7 @@ export class Field {
 }
 
 export class EntryConfigV2 {
-    version: number;
+    version: number = 2;
     altUrls?: string[];
     regExUrls?: string[];
     regExBlockedUrls?: string[];
