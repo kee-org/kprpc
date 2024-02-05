@@ -88,7 +88,7 @@ export class EntryConfig {
                     usernameFound = true;
                     const mc = !(ff.id || ff.name)
                         ? { matcherType: FieldMatcherType.UsernameDefaultHeuristic }
-                        : FieldMatcherConfig.forSingleClientMatch(ff.id, ff.name, ff.type);
+                        : FieldMatcherConfig.forSingleClientMatch(ff.id, ff.name, kfDm.keeFormFieldType.username);
                     const f: Field = new Field({
                         valuePath: "UserName",
                         page: Math.max(ff.page, 1),
@@ -96,7 +96,6 @@ export class EntryConfig {
                         type: FieldType.Text,
                         matcherConfigs: [mc]
                     });
-                    //TODO: string enums?
                     if (ff.placeholderHandling !== kfDm.PlaceholderHandling.Default) {
                         f.placeholderHandling = ff.placeholderHandling;
                     }
@@ -105,7 +104,7 @@ export class EntryConfig {
                     passwordFound = true;
                     const mc = !(ff.id || ff.name)
                         ? { matcherType: FieldMatcherType.PasswordDefaultHeuristic }
-                        : FieldMatcherConfig.forSingleClientMatch(ff.id, ff.name, ff.type);
+                        : FieldMatcherConfig.forSingleClientMatch(ff.id, ff.name, kfDm.keeFormFieldType.password);
                     const f: Field = new Field({
                         valuePath: "Password",
                         page: Math.max(ff.page, 1),
@@ -191,9 +190,9 @@ export enum FieldType { Text = "Text", Password = "Password", Existing = "Existi
 // For standard KeePass entries with no KPRPC-specific config, we can save storage space (and one day data-exchange bytes) by just recording that the client should use a typical locator to work out which field is the best match, because we have no additional information to help with this task.
 // We could extend this to very common additional heuristics in future (e.g. if many sites and entries end up with a custom locator with Id and Name == "password"). That would be pretty complex though so probably won't be worthwhile.
 export enum FieldMatcherType {
-    Custom = 0,
-    UsernameDefaultHeuristic = 1,
-    PasswordDefaultHeuristic = 2
+    Custom = "Custom",
+    UsernameDefaultHeuristic = "UsernameDefaultHeuristic",
+    PasswordDefaultHeuristic = "PasswordDefaultHeuristic"
 }
 
 // How we can locate a field in the client. At least one property must be set.
@@ -224,24 +223,22 @@ export class FieldMatcherConfig {
         Object.assign(this, init);
     }
 
-    public static forSingleClientMatch(id: string, name: string, fft: kfDm.keeFormFieldType): FieldMatcherConfig
-    {
+    public static forSingleClientMatch(id: string, name: string, fft: kfDm.keeFormFieldType): FieldMatcherConfig {
         var htmlType = Utilities.FormFieldTypeToHtmlType(fft);
         return FieldMatcherConfig.forSingleClientMatchHtmlType(id, name, htmlType);
     }
 
-    public static forSingleClientMatchHtmlType(id: string, name: string, htmlType: string, domSelector?: string): FieldMatcherConfig
-    {
+    public static forSingleClientMatchHtmlType(id: string, name: string, htmlType: string, domSelector?: string): FieldMatcherConfig {
         return new FieldMatcherConfig(
-        {
-            customMatcher: new FieldMatcher(
             {
-                ids: !id ? [] : [id],
-                names: !name ? [] : [name],
-                types: !htmlType ? [] : [htmlType],
-                queries: !domSelector ? [] : [domSelector],
-            })
-        });
+                customMatcher: new FieldMatcher(
+                    {
+                        ids: !id ? [] : [id],
+                        names: !name ? [] : [name],
+                        types: !htmlType ? [] : [htmlType],
+                        queries: !domSelector ? [] : [domSelector],
+                    })
+            });
     }
 }
 
@@ -323,5 +320,71 @@ export class EntryConfigV2 {
     //         this.blockHostnameOnlyMatch = true;
     //     }
     // }
+
+
+    public convertToV1(guidService: IGuidService): EntryConfigConverted {
+        const conf1: EntryConfigConverted = new EntryConfigConverted();
+
+        switch (this.behaviour ?? EntryAutomationBehaviour.Default) {
+            case EntryAutomationBehaviour.AlwaysAutoFill:
+                conf1.alwaysAutoFill = true;
+                conf1.alwaysAutoSubmit = false;
+                conf1.neverAutoFill = false;
+                conf1.neverAutoSubmit = false;
+                break;
+            case EntryAutomationBehaviour.NeverAutoSubmit:
+                conf1.alwaysAutoFill = false;
+                conf1.alwaysAutoSubmit = false;
+                conf1.neverAutoFill = false;
+                conf1.neverAutoSubmit = true;
+                break;
+            case EntryAutomationBehaviour.AlwaysAutoFillAlwaysAutoSubmit:
+                conf1.alwaysAutoFill = true;
+                conf1.alwaysAutoSubmit = true;
+                conf1.neverAutoFill = false;
+                conf1.neverAutoSubmit = false;
+                break;
+            case EntryAutomationBehaviour.NeverAutoFillNeverAutoSubmit:
+                conf1.alwaysAutoFill = false;
+                conf1.alwaysAutoSubmit = false;
+                conf1.neverAutoFill = true;
+                conf1.neverAutoSubmit = true;
+                break;
+            case EntryAutomationBehaviour.AlwaysAutoFillNeverAutoSubmit:
+                conf1.alwaysAutoFill = true;
+                conf1.alwaysAutoSubmit = false;
+                conf1.neverAutoFill = false;
+                conf1.neverAutoSubmit = true;
+                break;
+            case EntryAutomationBehaviour.Default:
+                conf1.alwaysAutoFill = false;
+                conf1.alwaysAutoSubmit = false;
+                conf1.neverAutoFill = false;
+                conf1.neverAutoSubmit = false;
+                break;
+        }
+
+        conf1.BlockedURLs = this.blockedUrls;
+        conf1.hTTPRealm = this.httpRealm || undefined;
+        conf1.altURLs = this.altUrls;
+        conf1.regExURLs = this.regExUrls;
+        conf1.regExBlockedURLs = this.regExBlockedUrls;
+        conf1.version = 1;
+
+
+//TODO: fields, hide, MAM
+
+
+        const mcList: EntryMatcherConfig[] = [
+            { matcherType: EntryMatcherType.Url, urlMatchMethod: this.getMatchAccuracyMethod(true) }
+        ];
+        if (this.hide) {
+            mcList.push({ matcherType: EntryMatcherType.Hide });
+        }
+        conf2.matcherConfigs = mcList;
+        conf2.fields = this.convertFields(this.formFieldList ?? [], guidService);
+
+        return conf2;
+    }
 
 }
