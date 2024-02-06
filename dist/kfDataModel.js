@@ -55,6 +55,9 @@ class keeLoginField {
 }
 exports.keeLoginField = keeLoginField;
 class KeeLoginFieldInternal {
+    constructor(init) {
+        Object.assign(this, init);
+    }
 }
 exports.KeeLoginFieldInternal = KeeLoginFieldInternal;
 var keeFormFieldType;

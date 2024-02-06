@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Utilities = void 0;
 const kdbxweb_1 = require("kdbxweb");
 const icons_1 = require("./icons");
 const EntryConfig_1 = require("./EntryConfig");
@@ -7,6 +8,7 @@ const DatabaseConfig_1 = require("./DatabaseConfig");
 const MatchAccuracyMethod_1 = require("./MatchAccuracyMethod");
 const kfDataModel_1 = require("./kfDataModel");
 const Hex_1 = require("./Hex");
+const GuidService_1 = require("./GuidService");
 // Ideally we would extend the various kdbxweb classes but they are hidden from public access so we
 // have to take this messy approach of mashing extensions on the side. We have a variety of
 // regularly required instance objects and functions to help us achieve this so we require
@@ -368,15 +370,37 @@ class ModelMasher {
         }
         return grp;
     }
-    getEntryConfig(entryIn, dbConfig) {
-        let json;
+    getEntryConfigV1Only(entryIn) {
+        let obj;
         try {
-            json = JSON.parse(entryIn.fields.get("KPRPC JSON").getText());
+            obj = JSON.parse(entryIn.fields.get("KPRPC JSON").getText());
+            return new EntryConfig_1.EntryConfig(obj);
         }
         catch (e) {
             // do nothing
         }
-        const config = json ? new EntryConfig_1.EntryConfig(json) : new EntryConfig_1.EntryConfig({
+        return null;
+    }
+    getEntryConfigV2Only(entryIn) {
+        var _a, _b, _c;
+        let obj;
+        try {
+            obj = JSON.parse((_c = (_b = (_a = entryIn.customData) === null || _a === void 0 ? void 0 : _a.get("KPRPC JSON")) === null || _b === void 0 ? void 0 : _b.value) !== null && _c !== void 0 ? _c : '');
+            return new EntryConfig_1.EntryConfigV2(obj);
+        }
+        catch (e) {
+            // do nothing
+        }
+        return null;
+    }
+    getEntryConfig(entryIn, dbConfig) {
+        var _a;
+        const configV2 = this.getEntryConfigV2Only(entryIn);
+        const configV1Converted = configV2 === null || configV2 === void 0 ? void 0 : configV2.convertToV1();
+        if (configV1Converted) {
+            return configV1Converted;
+        }
+        return (_a = this.getEntryConfigV1Only(entryIn)) !== null && _a !== void 0 ? _a : new EntryConfig_1.EntryConfig({
             version: 1,
             alwaysAutoFill: false,
             neverAutoFill: false,
@@ -387,18 +411,21 @@ class ModelMasher {
             blockHostnameOnlyMatch: false,
             blockDomainOnlyMatch: false
         }, dbConfig.defaultMatchAccuracy);
-        return config;
     }
     setEntryConfig(entry, config) {
         entry.fields.set("KPRPC JSON", kdbxweb_1.ProtectedValue.fromString(JSON.stringify(config)));
+        if (config instanceof EntryConfig_1.EntryConfigConverted) {
+            entry.setCustomData("KPRPC JSON", JSON.stringify(config.convertToV2(new GuidService_1.GuidService())));
+        }
     }
     getMatchAccuracyMethod(entry, urlsum, dbConfig) {
+        var _a;
         const conf = this.getEntryConfig(entry, dbConfig);
         if (urlsum && urlsum.domain && dbConfig.matchedURLAccuracyOverrides[urlsum.domain]) {
             return dbConfig.matchedURLAccuracyOverrides[urlsum.domain];
         }
         else {
-            return conf.getMatchAccuracyMethod();
+            return (_a = conf.getMatchAccuracyMethod()) !== null && _a !== void 0 ? _a : MatchAccuracyMethod_1.MatchAccuracyMethod.Domain;
         }
     }
     getDatabaseKPRPCConfig(db) {
@@ -637,4 +664,85 @@ function* entryGenerator(group) {
         yield* entryGenerator(group.groups[i]);
     }
 }
+class Utilities {
+    static FormFieldTypeToHtmlType(fft) {
+        if (fft === kfDataModel_1.keeFormFieldType.password)
+            return "password";
+        if (fft === kfDataModel_1.keeFormFieldType.select)
+            return "select-one";
+        if (fft === kfDataModel_1.keeFormFieldType.radio)
+            return "radio";
+        if (fft === kfDataModel_1.keeFormFieldType.checkbox)
+            return "checkbox";
+        return "text";
+    }
+    static FormFieldTypeToFieldType(fft) {
+        let type = EntryConfig_1.FieldType.Text;
+        if (fft === kfDataModel_1.keeFormFieldType.password)
+            type = EntryConfig_1.FieldType.Password;
+        else if (fft === kfDataModel_1.keeFormFieldType.select)
+            type = EntryConfig_1.FieldType.Existing;
+        else if (fft === kfDataModel_1.keeFormFieldType.radio)
+            type = EntryConfig_1.FieldType.Existing;
+        else if (fft === kfDataModel_1.keeFormFieldType.username)
+            type = EntryConfig_1.FieldType.Text;
+        else if (fft === kfDataModel_1.keeFormFieldType.checkbox)
+            type = EntryConfig_1.FieldType.Toggle;
+        return type;
+    }
+    static FieldTypeToDisplay(type, titleCase) {
+        let typeD = "Text";
+        if (type === EntryConfig_1.FieldType.Password)
+            typeD = "Password";
+        else if (type === EntryConfig_1.FieldType.Existing)
+            typeD = "Existing";
+        else if (type === EntryConfig_1.FieldType.Text)
+            typeD = "Text";
+        else if (type === EntryConfig_1.FieldType.Toggle)
+            typeD = "Toggle";
+        if (!titleCase)
+            return typeD.toLowerCase();
+        return typeD;
+    }
+    static FieldTypeToHtmlType(ft) {
+        switch (ft) {
+            case EntryConfig_1.FieldType.Password:
+                return "password";
+            case EntryConfig_1.FieldType.Existing:
+                return "radio";
+            case EntryConfig_1.FieldType.Toggle:
+                return "checkbox";
+            default:
+                return "text";
+        }
+    }
+    static FieldTypeToFormFieldType(ft) {
+        switch (ft) {
+            case EntryConfig_1.FieldType.Password:
+                return kfDataModel_1.keeFormFieldType.password;
+            case EntryConfig_1.FieldType.Existing:
+                return kfDataModel_1.keeFormFieldType.radio;
+            case EntryConfig_1.FieldType.Toggle:
+                return kfDataModel_1.keeFormFieldType.checkbox;
+            default:
+                return kfDataModel_1.keeFormFieldType.text;
+        }
+    }
+    // Assumes funky Username type has already been determined so all textual stuff is type text by now
+    static FormFieldTypeFromHtmlTypeOrFieldType(t, ft) {
+        switch (t) {
+            case "password":
+                return kfDataModel_1.keeFormFieldType.password;
+            case "radio":
+                return kfDataModel_1.keeFormFieldType.radio;
+            case "checkbox":
+                return kfDataModel_1.keeFormFieldType.checkbox;
+            case "select-one":
+                return kfDataModel_1.keeFormFieldType.select;
+            default:
+                return Utilities.FieldTypeToFormFieldType(ft);
+        }
+    }
+}
+exports.Utilities = Utilities;
 //# sourceMappingURL=model.js.map

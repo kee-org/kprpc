@@ -1,9 +1,9 @@
 import { KdbxEntry, Kdbx, KdbxGroup } from "kdbxweb";
-import { EntryConfig } from "./EntryConfig";
+import { EntryConfig, EntryConfigV2, FieldType } from "./EntryConfig";
 import { DatabaseConfig } from "./DatabaseConfig";
 import { MatchAccuracyMethod } from "./MatchAccuracyMethod";
 import { URLSummary } from "./URLSummary";
-import { Database, KeeEntry, MatchAccuracyEnum, KeeEntrySummary } from "./kfDataModel";
+import { Database, KeeEntry, MatchAccuracyEnum, KeeEntrySummary, keeFormFieldType } from "./kfDataModel";
 import { KdbxPlaceholders } from "kdbx-placeholders";
 declare class DBContext {
     fileName: string;
@@ -32,6 +32,8 @@ export default class ModelMasher {
     fromKeeEntry(db: Kdbx, keeEntry: KeeEntry, kdbxEntry: KdbxEntry, getDomain: any): KdbxEntry;
     getRootPwGroup(dbIn: Kdbx, location?: any): KdbxGroup;
     _getSubGroups(db: Kdbx, groupModel: KdbxGroup, dbContext: DBContext, config: ModelMasherConfig): any;
+    getEntryConfigV1Only(entryIn: KdbxEntry): EntryConfig | null;
+    getEntryConfigV2Only(entryIn: KdbxEntry): EntryConfigV2 | null;
     getEntryConfig(entryIn: KdbxEntry, dbConfig: DatabaseConfig): EntryConfig;
     setEntryConfig(entry: KdbxEntry, config: EntryConfig): void;
     getMatchAccuracyMethod(entry: KdbxEntry, urlsum: URLSummary, dbConfig: DatabaseConfig): MatchAccuracyMethod;
@@ -45,5 +47,13 @@ export default class ModelMasher {
     setField(entry: KdbxEntry, field: string, value: string, allowEmpty?: boolean): void;
     getField(entry: KdbxEntry, field: string, db: Kdbx, dereference?: boolean): any;
     derefValue(value: string, entry: KdbxEntry, db: Kdbx): any;
+}
+export declare class Utilities {
+    static FormFieldTypeToHtmlType(fft: keeFormFieldType): string;
+    static FormFieldTypeToFieldType(fft: keeFormFieldType): FieldType;
+    static FieldTypeToDisplay(type: FieldType, titleCase: boolean): string;
+    static FieldTypeToHtmlType(ft: FieldType): string;
+    static FieldTypeToFormFieldType(ft: FieldType): keeFormFieldType;
+    static FormFieldTypeFromHtmlTypeOrFieldType(t: string, ft: FieldType): keeFormFieldType;
 }
 export {};

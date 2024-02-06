@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "jrpc": "3.1.2",
-    "kdbx-placeholders": "1.1.23",
+    "kdbx-placeholders": "^1.2.0",
     "kdbxweb": "github:kee-org/kdbxweb#9bb5719406acc5a17dfb7cf5533be27c36c91262"
   }
 }

@@ -238,8 +238,6 @@ const impl = {
                         return false;
                     return true;
                 })) {
-                    //}
-                    // homeGroup.forEachFilteredGroup((entry, group) => {
                     // not interested in groups
                     if (it instanceof kdbxweb_1.KdbxGroup)
                         continue;
@@ -311,12 +309,6 @@ const impl = {
                     if (entryIsAMatch) {
                         allEntries.push(modelMasher.toKeeEntry(file.db, it, { fileName: file.id, active: true }, { fullDetail: true, matchAccuracy: bestMatchAccuracy }));
                     }
-                    //     }, undefined, (group) => {
-                    //         // ignore if it's in the recycle bin
-                    //         if (group.uuid.equals(file.db.meta.recycleBinUuid)) return false;
-                    //         return true;
-                    //     });
-                    // });
                 }
             });
             allEntries.sort((a, b) => {

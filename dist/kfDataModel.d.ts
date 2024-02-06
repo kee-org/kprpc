@@ -72,6 +72,7 @@ export declare class KeeLoginFieldInternal {
     type: keeFormFieldType;
     page: number;
     placeholderHandling: PlaceholderHandling;
+    constructor(init?: Partial<KeeLoginFieldInternal>);
 }
 export declare enum keeFormFieldType {
     radio = "FFTradio",
