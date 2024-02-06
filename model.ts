@@ -1,12 +1,13 @@
 import { ProtectedValue, KdbxEntry, Kdbx, KdbxGroup, KdbxUuid, ByteUtils, KdbxEntryField } from "kdbxweb";
 import { toBase64PNG, mapStandardToBase64PNG, searchBase64PNGToStandard, fromBase64PNG } from "./icons";
-import { EntryConfig, EntryConfigV2, FieldType } from "./EntryConfig";
+import { EntryConfig, EntryConfigConverted, EntryConfigV2, FieldType } from "./EntryConfig";
 import { DatabaseConfig } from "./DatabaseConfig";
 import { MatchAccuracyMethod } from "./MatchAccuracyMethod";
 import { URLSummary } from "./URLSummary";
 import { Database, PlaceholderHandling, KeeEntry, MatchAccuracyEnum, KeeEntrySummary, keeFormFieldType } from "./kfDataModel";
 import { KdbxPlaceholders } from "kdbx-placeholders";
 import { hex2base64 } from "./Hex";
+import { GuidService } from "./GuidService";
 
 // Ideally we would extend the various kdbxweb classes but they are hidden from public access so we
 // have to take this messy approach of mashing extensions on the side. We have a variety of
@@ -382,7 +383,7 @@ export default class ModelMasher {
         return grp;
     }
 
-    getEntryConfigV1Only(entryIn: KdbxEntry, dbConfig: DatabaseConfig) {
+    getEntryConfigV1Only(entryIn: KdbxEntry) {
         let obj;
 
         try {
@@ -394,7 +395,7 @@ export default class ModelMasher {
         return null;
     }
 
-    getEntryConfigV2Only(entryIn: KdbxEntry, dbConfig: DatabaseConfig) {
+    getEntryConfigV2Only(entryIn: KdbxEntry) {
         let obj;
 
         try {
@@ -407,17 +408,14 @@ export default class ModelMasher {
     }
 
     getEntryConfig(entryIn: KdbxEntry, dbConfig: DatabaseConfig) {
-        let json;
+        const configV2 = this.getEntryConfigV2Only(entryIn);
+        const configV1Converted = configV2?.convertToV1();
 
-        try {
-            //TODO: try to load from customdata and record if succeed and convert to v1 for use by rest of existing library code
-            // Use an EntryConfigConverted class with one extra bool to track when this was done ( check with instanceof ...)
-            json = JSON.parse((entryIn.fields.get("KPRPC JSON") as ProtectedValue).getText());
-        } catch (e) {
-            // do nothing
+        if (configV1Converted) {
+            return configV1Converted;
         }
 
-        const config = json ? new EntryConfig(json) : new EntryConfig({
+        return this.getEntryConfigV1Only(entryIn) ?? new EntryConfig({
             version: 1,
             alwaysAutoFill: false,
             neverAutoFill: false,
@@ -428,12 +426,13 @@ export default class ModelMasher {
             blockHostnameOnlyMatch: false,
             blockDomainOnlyMatch: false
         }, dbConfig.defaultMatchAccuracy);
-        return config;
     }
 
     setEntryConfig(entry: KdbxEntry, config: EntryConfig) {
         entry.fields.set("KPRPC JSON", ProtectedValue.fromString(JSON.stringify(config)));
-        //TODO: also save to customdata (convert first) assuming we originally loaded a v2 config
+        if (config instanceof EntryConfigConverted) {
+            entry.setCustomData("KPRPC JSON", JSON.stringify(config.convertToV2(new GuidService())));
+        }
     }
 
     getMatchAccuracyMethod(entry: KdbxEntry, urlsum: URLSummary, dbConfig: DatabaseConfig): MatchAccuracyMethod {

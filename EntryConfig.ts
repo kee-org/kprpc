@@ -327,12 +327,12 @@ export class EntryConfigV2 {
     // }
 
 
-    public convertToV1(guidService: IGuidService): EntryConfigConverted {
+    public convertToV1(): EntryConfigConverted {
         const conf1: EntryConfigConverted = new EntryConfigConverted();
 
         conf1.version = 1;
         conf1.hTTPRealm = this.httpRealm || '';
-        conf1.formFieldList = this.convertFields(this.fields ?? [], guidService);
+        conf1.formFieldList = this.convertFields(this.fields ?? []);
 
         switch (this.behaviour ?? EntryAutomationBehaviour.Default) {
             case EntryAutomationBehaviour.AlwaysAutoFill:
@@ -389,7 +389,7 @@ export class EntryConfigV2 {
         return conf1;
     }
 
-    public convertFields(fields: Field[], guidService: IGuidService): kfDm.KeeLoginFieldInternal[] {
+    public convertFields(fields: Field[]): kfDm.KeeLoginFieldInternal[] {
         const formFieldList: kfDm.KeeLoginFieldInternal[] = [];
 
         for (let ff of fields) {
