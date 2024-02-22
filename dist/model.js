@@ -609,9 +609,9 @@ class ModelMasher {
     }
     matchesAnyBlockedURL(conf, url) {
         // hostname-wide blocks are not natively supported but can be emulated using an appropriate regex
-        if (conf.BlockedURLs) {
-            for (let j = 0; j < conf.BlockedURLs.length; j++) {
-                const blockedUrl = conf.BlockedURLs[j];
+        if (conf.blockedURLs) {
+            for (let j = 0; j < conf.blockedURLs.length; j++) {
+                const blockedUrl = conf.blockedURLs[j];
                 if (blockedUrl.indexOf(url) >= 0) {
                     return true;
                 }

@@ -16,6 +16,7 @@ export declare class EntryConfig {
     regExURLs?: string[];
     regExBlockedURLs?: string[];
     BlockedURLs?: string[];
+    blockedURLs?: string[];
     hTTPRealm?: string;
     constructor(init?: Partial<EntryConfig>, mam?: MatchAccuracyMethod);
     getMatchAccuracyMethod(omitIfDefault?: boolean): MatchAccuracyMethod | undefined;

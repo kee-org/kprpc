@@ -17,7 +17,14 @@ export class EntryConfig {
     altURLs?: string[];
     regExURLs?: string[];
     regExBlockedURLs?: string[];
+
+    // This was never used but some JSON with this case may be persisted in some entries
+    // so we want to be able to parse to this property in order that we don't throw an
+    // error. If present at all, we expect the result to be an empty array.
+    /// deprecated - use lower case version instead
     BlockedURLs?: string[];
+
+    blockedURLs?: string[];
     hTTPRealm?: string;
 
     public constructor(init?: Partial<EntryConfig>, mam?: MatchAccuracyMethod) {
@@ -60,7 +67,7 @@ export class EntryConfig {
             conf2.behaviour = EntryAutomationBehaviour.AlwaysAutoFill;
         //else default (can be persisted as null)
 
-        conf2.blockedUrls = this.BlockedURLs;
+        conf2.blockedUrls = this.blockedURLs;
         conf2.httpRealm = this.hTTPRealm || undefined;
         conf2.altUrls = this.altURLs;
         conf2.regExUrls = this.regExURLs;
@@ -375,7 +382,7 @@ export class EntryConfigV2 {
 
         conf1.priority = 0;
 
-        conf1.BlockedURLs = this.blockedUrls;
+        conf1.blockedURLs = this.blockedUrls;
         conf1.altURLs = this.altUrls;
         conf1.regExURLs = this.regExUrls;
         conf1.regExBlockedURLs = this.regExBlockedUrls;

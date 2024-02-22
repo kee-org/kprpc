@@ -82,7 +82,7 @@ class EntryConfig {
         else if (this.alwaysAutoFill)
             conf2.behaviour = EntryAutomationBehaviour.AlwaysAutoFill;
         //else default (can be persisted as null)
-        conf2.blockedUrls = this.BlockedURLs;
+        conf2.blockedUrls = this.blockedURLs;
         conf2.httpRealm = this.hTTPRealm || undefined;
         conf2.altUrls = this.altURLs;
         conf2.regExUrls = this.regExURLs;
@@ -352,7 +352,7 @@ class EntryConfigV2 {
                 break;
         }
         conf1.priority = 0;
-        conf1.BlockedURLs = this.blockedUrls;
+        conf1.blockedURLs = this.blockedUrls;
         conf1.altURLs = this.altUrls;
         conf1.regExURLs = this.regExUrls;
         conf1.regExBlockedURLs = this.regExBlockedUrls;
