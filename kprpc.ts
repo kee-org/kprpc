@@ -554,6 +554,10 @@ export default class KPRPC {
         });
     }
 
+    getModelMasher () {
+        return modelMasher;
+    }
+
     async deferIfNeeded (func, next) {
         try {
             await delayUntilIntegrationReady();
