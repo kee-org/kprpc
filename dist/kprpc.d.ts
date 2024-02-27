@@ -1,9 +1,11 @@
+import ModelMasher from "./model";
 import { KeeEntry } from "./kfDataModel";
 export default class KPRPC {
     static SIGNAL_OPENED: number;
     static SIGNAL_CLOSED: number;
     static SIGNAL_SAVED: number;
     init(dependencies: any, loggerIn: any, appVersionString: any): void;
+    getModelMasher(): ModelMasher;
     deferIfNeeded(func: any, next: any): Promise<void>;
     executeNow(func: any, next: any): void;
     shutdown(): void;

@@ -1,6 +1,6 @@
 {
   "name": "kprpc",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "A KeePassRPC server",
   "main": "main.js",
   "types": "main.d.ts",

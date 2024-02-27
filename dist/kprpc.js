@@ -530,6 +530,9 @@ class KPRPC {
                 ] });
         });
     }
+    getModelMasher() {
+        return modelMasher;
+    }
     deferIfNeeded(func, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
