@@ -328,7 +328,8 @@ export default class ModelMasher {
         if (homeGroupUUID) {
             const homeGroup = dbIn.getGroup(new KdbxUuid(homeGroupUUID));
             if (!homeGroup) {
-                throw new Error("Home group not found. Database misconfigured. Resolve by setting a new home group.");
+                this.logger.error("Home group not found. Database misconfigured. Working around by using default group.");
+                return dbIn.getDefaultGroup();
             }
             return homeGroup;
         } else {
