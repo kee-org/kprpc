@@ -445,21 +445,22 @@ export default class ModelMasher {
     }
 
     getDatabaseKPRPCConfig(db: Kdbx) {
-        if (!db.meta.customData["KeePassRPC.Config"]) {
+        const kprpcConfig = db.meta.customData.get("KeePassRPC.Config")?.value;
+        if (!kprpcConfig) {
             // Set custom data and migrate the old config custom data to this
             // version (but don't save the DB - we can do this again and again until
             // user decides to save a change for another reason)
             const newConfig = new DatabaseConfig();
-
-            if (db.meta.customData["KeePassRPC.KeeFox.rootUUID"]) {
-                newConfig.rootUUID = hex2base64(db.meta.customData["KeePassRPC.KeeFox.rootUUID"]);
+            const keefoxRootUuid = db.meta.customData.get("KeePassRPC.KeeFox.rootUUID")?.value;
+            if (keefoxRootUuid) {
+                newConfig.rootUUID = hex2base64(keefoxRootUuid);
             }
 
             this.setDatabaseKPRPCConfig(db, newConfig);
             return newConfig;
         } else {
             try {
-                return DatabaseConfig.fromJSON(db.meta.customData["KeePassRPC.Config"]);
+                return DatabaseConfig.fromJSON(kprpcConfig);
             } catch (Exception) {
                 // Reset to default config because the current stored config is corrupt
                 const newConfig = new DatabaseConfig();
@@ -470,7 +471,7 @@ export default class ModelMasher {
     }
 
     setDatabaseKPRPCConfig(db: Kdbx, newConfig: DatabaseConfig) {
-        db.meta.customData["KeePassRPC.Config"] = newConfig.toJSON();
+        db.meta.customData.set("KeePassRPC.Config", { value: newConfig.toJSON(), lastModified: new Date() });
     }
 
     getGroupPath(group?: KdbxGroup) {
@@ -489,8 +490,7 @@ export default class ModelMasher {
         // Both version 2 and 3 are correct since their differences
         // do not extend to the public API exposed by KPRPC
 
-        // tslint:disable-next-line:triple-equals
-        if (db.meta.customData["KeePassRPC.KeeFox.configVersion"] == 2 ||
+        if (db.meta.customData.get("KeePassRPC.KeeFox.configVersion")?.value === "2" ||
             this.getDatabaseKPRPCConfig(db).version === 3) {
             return true;
         } else {
