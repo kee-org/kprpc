@@ -46,6 +46,7 @@ class ModelMasher {
         };
     }
     toKeeEntry(db, kdbxEntry, dbContext, config) {
+        var _a;
         const formFieldList = [];
         const URLs = [];
         let usernameFound = false;
@@ -147,7 +148,7 @@ class ModelMasher {
         }
         let icon = null;
         if (kdbxEntry.customIcon) {
-            icon = (0, icons_1.toBase64PNG)(db.meta.customIcons[kdbxEntry.customIcon.id]);
+            icon = (0, icons_1.toBase64PNG)((_a = db.meta.customIcons.get(kdbxEntry.customIcon.id)) === null || _a === void 0 ? void 0 : _a.data);
         }
         if (config.fullDetail) {
             alwaysAutoFill = conf.alwaysAutoFill;
@@ -188,11 +189,12 @@ class ModelMasher {
         }
     }
     toKeeGroup(db, groupIn) {
+        var _a;
         if (!groupIn)
             return undefined;
         let icon = null;
         if (groupIn.customIcon) {
-            icon = (0, icons_1.toBase64PNG)(db.meta.customIcons[groupIn.customIcon.id]);
+            icon = (0, icons_1.toBase64PNG)((_a = db.meta.customIcons.get(groupIn.customIcon.id)) === null || _a === void 0 ? void 0 : _a.data);
         }
         return {
             title: groupIn.name,
@@ -280,10 +282,16 @@ class ModelMasher {
             if (iconId === null) {
                 const customIconData = (0, icons_1.fromBase64PNG)(keeEntry["iconImageData"]);
                 if (customIconData) {
-                    let iconKeyName = Object.keys(db.meta.customIcons).find(key => db.meta.customIcons[key] === customIconData);
+                    let iconKeyName;
+                    for (const [key, value] of db.meta.customIcons) {
+                        if (value.data === customIconData) {
+                            iconKeyName = key;
+                            break;
+                        }
+                    }
                     if (!iconKeyName) {
                         const uuid = kdbxweb_1.KdbxUuid.random();
-                        db.meta.customIcons[uuid.toString()] = kdbxweb_1.ByteUtils.arrayToBuffer(customIconData);
+                        db.meta.customIcons.set(uuid.toString(), { data: kdbxweb_1.ByteUtils.arrayToBuffer(customIconData), lastModified: new Date() });
                         iconKeyName = uuid.toString();
                     }
                     kdbxEntry.customIcon = new kdbxweb_1.KdbxUuid(iconKeyName);
@@ -429,20 +437,23 @@ class ModelMasher {
         }
     }
     getDatabaseKPRPCConfig(db) {
-        if (!db.meta.customData["KeePassRPC.Config"]) {
+        var _a, _b;
+        const kprpcConfig = (_a = db.meta.customData.get("KeePassRPC.Config")) === null || _a === void 0 ? void 0 : _a.value;
+        if (!kprpcConfig) {
             // Set custom data and migrate the old config custom data to this
             // version (but don't save the DB - we can do this again and again until
             // user decides to save a change for another reason)
             const newConfig = new DatabaseConfig_1.DatabaseConfig();
-            if (db.meta.customData["KeePassRPC.KeeFox.rootUUID"]) {
-                newConfig.rootUUID = (0, Hex_1.hex2base64)(db.meta.customData["KeePassRPC.KeeFox.rootUUID"]);
+            const keefoxRootUuid = (_b = db.meta.customData.get("KeePassRPC.KeeFox.rootUUID")) === null || _b === void 0 ? void 0 : _b.value;
+            if (keefoxRootUuid) {
+                newConfig.rootUUID = (0, Hex_1.hex2base64)(keefoxRootUuid);
             }
             this.setDatabaseKPRPCConfig(db, newConfig);
             return newConfig;
         }
         else {
             try {
-                return DatabaseConfig_1.DatabaseConfig.fromJSON(db.meta.customData["KeePassRPC.Config"]);
+                return DatabaseConfig_1.DatabaseConfig.fromJSON(kprpcConfig);
             }
             catch (Exception) {
                 // Reset to default config because the current stored config is corrupt
@@ -453,7 +464,7 @@ class ModelMasher {
         }
     }
     setDatabaseKPRPCConfig(db, newConfig) {
-        db.meta.customData["KeePassRPC.Config"] = newConfig.toJSON();
+        db.meta.customData.set("KeePassRPC.Config", { value: newConfig.toJSON(), lastModified: new Date() });
     }
     getGroupPath(group) {
         var _a;
@@ -467,10 +478,10 @@ class ModelMasher {
     isConfigCorrectVersion(db) {
         // In all rejection cases, ideally we'd at least notify the user and maybe one day even assist with
         //  auto-migration but realistically, they'll just have to open and re-save the DB in KeePass
+        var _a;
         // Both version 2 and 3 are correct since their differences
         // do not extend to the public API exposed by KPRPC
-        // tslint:disable-next-line:triple-equals
-        if (db.meta.customData["KeePassRPC.KeeFox.configVersion"] == 2 ||
+        if (((_a = db.meta.customData.get("KeePassRPC.KeeFox.configVersion")) === null || _a === void 0 ? void 0 : _a.value) === "2" ||
             this.getDatabaseKPRPCConfig(db).version === 3) {
             return true;
         }

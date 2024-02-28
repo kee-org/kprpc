@@ -158,7 +158,7 @@ export default class ModelMasher {
         }
 
         let icon: string | null = null;
-        if (kdbxEntry.customIcon) { icon = toBase64PNG(db.meta.customIcons[kdbxEntry.customIcon.id]); }
+        if (kdbxEntry.customIcon) { icon = toBase64PNG(db.meta.customIcons.get(kdbxEntry.customIcon.id)?.data); }
 
         if (config.fullDetail) {
             alwaysAutoFill = conf.alwaysAutoFill;
@@ -200,7 +200,7 @@ export default class ModelMasher {
     toKeeGroup(db: Kdbx, groupIn?: KdbxGroup) {
         if (!groupIn) return undefined;
         let icon: string | null = null;
-        if (groupIn.customIcon) { icon = toBase64PNG(db.meta.customIcons[groupIn.customIcon.id]); }
+        if (groupIn.customIcon) { icon = toBase64PNG(db.meta.customIcons.get(groupIn.customIcon.id)?.data); }
 
         return {
             title: groupIn.name,
@@ -293,10 +293,16 @@ export default class ModelMasher {
             if (iconId === null) {
                 const customIconData = fromBase64PNG(keeEntry["iconImageData"]);
                 if (customIconData) {
-                    let iconKeyName = Object.keys(db.meta.customIcons).find(key => db.meta.customIcons[key] === customIconData);
+                    let iconKeyName;
+                    for (const [key, value] of db.meta.customIcons) {
+                        if (value.data === customIconData) {
+                            iconKeyName = key;
+                            break;
+                        }
+                    }
                     if (!iconKeyName) {
                         const uuid = KdbxUuid.random();
-                        db.meta.customIcons[uuid.toString()] = ByteUtils.arrayToBuffer(customIconData);
+                        db.meta.customIcons.set(uuid.toString(), { data: ByteUtils.arrayToBuffer(customIconData), lastModified: new Date() });
                         iconKeyName = uuid.toString();
                     }
                     kdbxEntry.customIcon = new KdbxUuid(iconKeyName);
