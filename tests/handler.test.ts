@@ -98,7 +98,7 @@ describe("URLMatchTest", () => {
             const pwe = newDb.createEntry(group);
 
             const conf = new EntryConfig(undefined, entryMam);
-            model.setEntryConfig(pwe, conf);
+            ModelMasher.setEntryConfig(pwe, conf);
             const urlSummary = model.getURLSummary(urlSearch, getDomain);
             const dbConf = new DatabaseConfig();
             dbConf.defaultMatchAccuracy = defaultMam;
@@ -180,7 +180,7 @@ describe("CalculatesCorrectMatchAccuracyScore", () => {
             const pwe = newDb.createEntry(group);
             pwe.fields.set("URL", urlEntry);
             const conf = new EntryConfig(undefined, entryMam);
-            model.setEntryConfig(pwe, conf);
+            ModelMasher.setEntryConfig(pwe, conf);
             const urlSummary = model.getURLSummary(urlSearch, getDomain);
 
             const result = model.bestMatchAccuracyForAnyURL(pwe, conf, urlSearch, urlSummary, entryMam, newDb);

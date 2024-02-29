@@ -69,7 +69,7 @@ export default class ModelMasher {
         if (url) URLs.push(url);
 
         const dbConf = this.getDatabaseKPRPCConfig(db);
-        const conf = this.getEntryConfig(kdbxEntry, dbConf);
+        const conf = ModelMasher.getEntryConfig(kdbxEntry, dbConf);
 
         const dbDefaultPlaceholderHandlingEnabled = dbConf.defaultPlaceholderHandling === PlaceholderHandling.Enabled;
 
@@ -312,7 +312,7 @@ export default class ModelMasher {
             }
         }
 
-        this.setEntryConfig(kdbxEntry, conf);
+        ModelMasher.setEntryConfig(kdbxEntry, conf);
 
         return kdbxEntry;
     }
@@ -390,60 +390,8 @@ export default class ModelMasher {
         return grp;
     }
 
-    getEntryConfigV1Only(entryIn: KdbxEntry) {
-        let obj;
-
-        try {
-            obj = JSON.parse((entryIn.fields.get("KPRPC JSON") as ProtectedValue).getText());
-            return new EntryConfig(obj);
-        } catch (e) {
-            // do nothing
-        }
-        return null;
-    }
-
-    getEntryConfigV2Only(entryIn: KdbxEntry) {
-        let obj;
-
-        try {
-            obj = JSON.parse(entryIn.customData?.get("KPRPC JSON")?.value ?? '');
-            return new EntryConfigV2(obj);
-        } catch (e) {
-            // do nothing
-        }
-        return null;
-    }
-
-    getEntryConfig(entryIn: KdbxEntry, dbConfig: DatabaseConfig) {
-        const configV2 = this.getEntryConfigV2Only(entryIn);
-        const configV1Converted = configV2?.convertToV1();
-
-        if (configV1Converted) {
-            return configV1Converted;
-        }
-
-        return this.getEntryConfigV1Only(entryIn) ?? new EntryConfig({
-            version: 1,
-            alwaysAutoFill: false,
-            neverAutoFill: false,
-            alwaysAutoSubmit: false,
-            neverAutoSubmit: false,
-            priority: 0,
-            hide: false,
-            blockHostnameOnlyMatch: false,
-            blockDomainOnlyMatch: false
-        }, dbConfig.defaultMatchAccuracy);
-    }
-
-    setEntryConfig(entry: KdbxEntry, config: EntryConfig) {
-        entry.fields.set("KPRPC JSON", ProtectedValue.fromString(JSON.stringify(config)));
-        if (config instanceof EntryConfigConverted) {
-            entry.setCustomData("KPRPC JSON", JSON.stringify(config.convertToV2(new GuidService())));
-        }
-    }
-
     getMatchAccuracyMethod(entry: KdbxEntry, urlsum: URLSummary, dbConfig: DatabaseConfig): MatchAccuracyMethod {
-        const conf = this.getEntryConfig(entry, dbConfig);
+        const conf = ModelMasher.getEntryConfig(entry, dbConfig);
         if (urlsum && urlsum.domain && dbConfig.matchedURLAccuracyOverrides[urlsum.domain]) {
             return dbConfig.matchedURLAccuracyOverrides[urlsum.domain];
         } else {
@@ -673,6 +621,59 @@ export default class ModelMasher {
 
     derefValue(value: string, entry: KdbxEntry, db: Kdbx) {
         return this.Placeholders.processAllReferences(3, value, entry, () => entryGenerator(db.getDefaultGroup()));
+    }
+
+
+    static getEntryConfigV1Only(entryIn: KdbxEntry) {
+        let obj;
+
+        try {
+            obj = JSON.parse((entryIn.fields.get("KPRPC JSON") as ProtectedValue).getText());
+            return new EntryConfig(obj);
+        } catch (e) {
+            // do nothing
+        }
+        return null;
+    }
+
+    static getEntryConfigV2Only(entryIn: KdbxEntry) {
+        let obj;
+
+        try {
+            obj = JSON.parse(entryIn.customData?.get("KPRPC JSON")?.value ?? '');
+            return new EntryConfigV2(obj);
+        } catch (e) {
+            // do nothing
+        }
+        return null;
+    }
+
+    static getEntryConfig(entryIn: KdbxEntry, dbConfig: DatabaseConfig) {
+        const configV2 = ModelMasher.getEntryConfigV2Only(entryIn);
+        const configV1Converted = configV2?.convertToV1();
+
+        if (configV1Converted) {
+            return configV1Converted;
+        }
+
+        return ModelMasher.getEntryConfigV1Only(entryIn) ?? new EntryConfig({
+            version: 1,
+            alwaysAutoFill: false,
+            neverAutoFill: false,
+            alwaysAutoSubmit: false,
+            neverAutoSubmit: false,
+            priority: 0,
+            hide: false,
+            blockHostnameOnlyMatch: false,
+            blockDomainOnlyMatch: false
+        }, dbConfig.defaultMatchAccuracy);
+    }
+
+    static setEntryConfig(entry: KdbxEntry, config: EntryConfig) {
+        entry.fields.set("KPRPC JSON", ProtectedValue.fromString(JSON.stringify(config)));
+        if (config instanceof EntryConfigConverted) {
+            entry.setCustomData("KPRPC JSON", JSON.stringify(config.convertToV2(new GuidService())));
+        }
     }
 
 }

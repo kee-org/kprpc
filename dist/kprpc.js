@@ -241,7 +241,7 @@ const impl = {
                     // not interested in groups
                     if (it instanceof kdbxweb_1.KdbxGroup)
                         continue;
-                    const conf = modelMasher.getEntryConfig(it, dbConfig);
+                    const conf = model_1.default.getEntryConfig(it, dbConfig);
                     if (conf == null || conf.hide) {
                         return;
                     }
@@ -327,11 +327,11 @@ const impl = {
 const mergeEntries = function (destination, source, urlMergeMode, db) {
     var _a, _b;
     const dbConfig = modelMasher.getDatabaseKPRPCConfig(db);
-    const destConfig = modelMasher.getEntryConfig(destination, dbConfig);
+    const destConfig = model_1.default.getEntryConfig(destination, dbConfig);
     if (!destConfig) {
         return;
     }
-    const sourceConfig = modelMasher.getEntryConfig(source, dbConfig);
+    const sourceConfig = model_1.default.getEntryConfig(source, dbConfig);
     if (!sourceConfig) {
         return;
     }
@@ -397,7 +397,7 @@ const mergeEntries = function (destination, source, urlMergeMode, db) {
     if (destURLs.length > 1) {
         destConfig["altURLs"] = destURLs.slice(1, destURLs.length);
     }
-    modelMasher.setEntryConfig(destination, destConfig);
+    model_1.default.setEntryConfig(destination, destConfig);
     destination.times.update();
 };
 const mergeInNewURLs = function (destURLs, sourceURLs) {

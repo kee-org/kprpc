@@ -32,10 +32,6 @@ export default class ModelMasher {
     fromKeeEntry(db: Kdbx, keeEntry: KeeEntry, kdbxEntry: KdbxEntry, getDomain: any): KdbxEntry;
     getRootPwGroup(dbIn: Kdbx, location?: any): KdbxGroup;
     _getSubGroups(db: Kdbx, groupModel: KdbxGroup, dbContext: DBContext, config: ModelMasherConfig): any;
-    getEntryConfigV1Only(entryIn: KdbxEntry): EntryConfig | null;
-    getEntryConfigV2Only(entryIn: KdbxEntry): EntryConfigV2 | null;
-    getEntryConfig(entryIn: KdbxEntry, dbConfig: DatabaseConfig): EntryConfig;
-    setEntryConfig(entry: KdbxEntry, config: EntryConfig): void;
     getMatchAccuracyMethod(entry: KdbxEntry, urlsum: URLSummary, dbConfig: DatabaseConfig): MatchAccuracyMethod;
     getDatabaseKPRPCConfig(db: Kdbx): DatabaseConfig;
     setDatabaseKPRPCConfig(db: Kdbx, newConfig: DatabaseConfig): void;
@@ -47,6 +43,10 @@ export default class ModelMasher {
     setField(entry: KdbxEntry, field: string, value: string, allowEmpty?: boolean): void;
     getField(entry: KdbxEntry, field: string, db: Kdbx, dereference?: boolean): any;
     derefValue(value: string, entry: KdbxEntry, db: Kdbx): any;
+    static getEntryConfigV1Only(entryIn: KdbxEntry): EntryConfig | null;
+    static getEntryConfigV2Only(entryIn: KdbxEntry): EntryConfigV2 | null;
+    static getEntryConfig(entryIn: KdbxEntry, dbConfig: DatabaseConfig): EntryConfig;
+    static setEntryConfig(entry: KdbxEntry, config: EntryConfig): void;
 }
 export declare class Utilities {
     static FormFieldTypeToHtmlType(fft: keeFormFieldType): string;

@@ -35,7 +35,7 @@ describe("config v1->v2", () => {
             const pwe = newDb.createEntry(group);
             pwe.fields.set("KPRPC JSON", kdbxweb.ProtectedValue.fromString(persistedV1));
             const dbConfig = modelMasher.getDatabaseKPRPCConfig(newDb);
-            const configV1 = modelMasher.getEntryConfig(pwe, dbConfig);
+            const configV1 = ModelMasher.getEntryConfig(pwe, dbConfig);
 
             const configV2 = configV1?.convertToV2(new MockGuidService());
             //modelMasher.setEntryConfig(pwe, configV2);
@@ -75,7 +75,7 @@ describe("config v2->v1", () => {
             const group = newDb.createGroup(newDb.getDefaultGroup(), "subgroup");
             const pwe = newDb.createEntry(group);
             pwe.setCustomData("KPRPC JSON", persistedV2);
-            const configV2 = modelMasher.getEntryConfigV2Only(pwe);
+            const configV2 = ModelMasher.getEntryConfigV2Only(pwe);
 
             const configV1 = configV2?.convertToV1();
             var sut = JSON.stringify(configV1);
