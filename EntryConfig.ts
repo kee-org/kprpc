@@ -126,11 +126,14 @@ export class EntryConfig {
                 }
                 else {
                     const mc = FieldMatcherConfig.forSingleClientMatch(ff.id, ff.name, ff.type);
+                    const newUniqueId = guidService.NewGuid();
                     const f: Field = new Field({
-                        name: ff.displayName,
+                        name: ff.displayName
+                        ? ff.displayName
+                        : newUniqueId,
                         valuePath: ".",
                         page: Math.max(ff.page, 1),
-                        uuid: guidService.NewGuid(),
+                        uuid: newUniqueId,
                         type: Utilities.FormFieldTypeToFieldType(ff.type),
                         matcherConfigs: [mc],
                         value: ff.value
@@ -431,6 +434,13 @@ export class EntryConfigV2 {
                 displayName = "KeePass username";
                 htmlType = kfDm.keeFormFieldType.username;
                 ffValue = "{USERNAME}";
+            }
+
+            // KV1&2 requires a displayname to work properly so force it to be the uuid if
+            // none was already present. Should only happen after an import from KeePass
+            // (and was a pre-existing import bug even before V2 config)
+            if (!displayName) {
+                displayName = ff.uuid;
             }
 
             if (ffValue !== "") {
