@@ -1,12 +1,13 @@
-import { ProtectedValue, KdbxEntry, Kdbx, KdbxGroup, KdbxUuid, ByteUtils } from "kdbxweb";
+import { ProtectedValue, KdbxEntry, Kdbx, KdbxGroup, KdbxUuid, ByteUtils, KdbxEntryField } from "kdbxweb";
 import { toBase64PNG, mapStandardToBase64PNG, searchBase64PNGToStandard, fromBase64PNG } from "./icons";
-import { EntryConfig } from "./EntryConfig";
+import { EntryConfig, EntryConfigConverted, EntryConfigV2, FieldType } from "./EntryConfig";
 import { DatabaseConfig } from "./DatabaseConfig";
 import { MatchAccuracyMethod } from "./MatchAccuracyMethod";
 import { URLSummary } from "./URLSummary";
-import { Database, PlaceholderHandling, KeeEntry, MatchAccuracyEnum, KeeEntrySummary } from "./kfDataModel";
+import { Database, PlaceholderHandling, KeeEntry, MatchAccuracyEnum, KeeEntrySummary, keeFormFieldType } from "./kfDataModel";
 import { KdbxPlaceholders } from "kdbx-placeholders";
 import { hex2base64 } from "./Hex";
+import { GuidService } from "./GuidService";
 
 // Ideally we would extend the various kdbxweb classes but they are hidden from public access so we
 // have to take this messy approach of mashing extensions on the side. We have a variety of
@@ -28,9 +29,9 @@ class ModelMasherConfig {
 
 export default class ModelMasher {
 
-    constructor (private Placeholders: KdbxPlaceholders, private getDomain, private logger) {}
+    constructor(private Placeholders: KdbxPlaceholders, private getDomain, private logger) { }
 
-    toKeeDatabase (dbIn: Kdbx, dbContext: DBContext, config: ModelMasherConfig): Database {
+    toKeeDatabase(dbIn: Kdbx, dbContext: DBContext, config: ModelMasherConfig): Database {
         // debugger;
         if (config.fullDetail && config.noDetail) { throw new Error("Don't be silly"); }
         const rgModel = this.getRootPwGroup(dbIn);
@@ -40,18 +41,18 @@ export default class ModelMasher {
             rg = this.toKeeGroup(dbIn, rgModel);
         } else {
             rg = this._getSubGroups(dbIn, rgModel, dbContext,
-                {complete: true, fullDetail: config.fullDetail, matchAccuracy: MatchAccuracyEnum.None, urlRequired: true});
+                { complete: true, fullDetail: config.fullDetail, matchAccuracy: MatchAccuracyEnum.None, urlRequired: true });
         }
 
         return {
-            name: dbIn.meta.name,
+            name: dbIn.meta.name ?? "",
             fileName: dbContext.fileName,
             active: dbContext.active,
             root: rg,
             iconImageData: rg.iconImageData
         };
     }
-    toKeeEntry (db: Kdbx, kdbxEntry: KdbxEntry, dbContext: DBContext, config: ModelMasherConfig): KeeEntry|KeeEntrySummary {
+    toKeeEntry(db: Kdbx, kdbxEntry: KdbxEntry, dbContext: DBContext, config: ModelMasherConfig): KeeEntry | KeeEntrySummary {
         const formFieldList: any[] = [];
         const URLs: string[] = [];
         let usernameFound = false;
@@ -68,7 +69,7 @@ export default class ModelMasher {
         if (url) URLs.push(url);
 
         const dbConf = this.getDatabaseKPRPCConfig(db);
-        const conf = this.getEntryConfig(kdbxEntry, dbConf);
+        const conf = ModelMasher.getEntryConfig(kdbxEntry, dbConf);
 
         const dbDefaultPlaceholderHandlingEnabled = dbConf.defaultPlaceholderHandling === PlaceholderHandling.Enabled;
 
@@ -156,8 +157,8 @@ export default class ModelMasher {
             }
         }
 
-        let icon: string|null = null;
-        if (kdbxEntry.customIcon) { icon = toBase64PNG(db.meta.customIcons[kdbxEntry.customIcon]); }
+        let icon: string | null = null;
+        if (kdbxEntry.customIcon) { icon = toBase64PNG(db.meta.customIcons.get(kdbxEntry.customIcon.id)?.data); }
 
         if (config.fullDetail) {
             alwaysAutoFill = conf.alwaysAutoFill;
@@ -182,7 +183,7 @@ export default class ModelMasher {
                 neverAutoSubmit,
                 priority,
                 parent: this.toKeeGroup(db, kdbxEntry.parentGroup),
-                db: this.toKeeDatabase(db, dbContext, {fullDetail: false, noDetail: true}),
+                db: this.toKeeDatabase(db, dbContext, { fullDetail: false, noDetail: true }),
                 matchAccuracy: config.matchAccuracy || MatchAccuracyEnum.None
             };
         } else {
@@ -196,9 +197,10 @@ export default class ModelMasher {
             };
         }
     }
-    toKeeGroup (db: Kdbx, groupIn: KdbxGroup) {
-        let icon: string|null = null;
-        if (groupIn.customIcon) { icon = toBase64PNG(db.meta.customIcons[groupIn.customIcon]); }
+    toKeeGroup(db: Kdbx, groupIn?: KdbxGroup) {
+        if (!groupIn) return undefined;
+        let icon: string | null = null;
+        if (groupIn.customIcon) { icon = toBase64PNG(db.meta.customIcons.get(groupIn.customIcon.id)?.data); }
 
         return {
             title: groupIn.name,
@@ -208,7 +210,7 @@ export default class ModelMasher {
         };
     }
 
-    fromKeeEntry (db: Kdbx, keeEntry: KeeEntry, kdbxEntry: KdbxEntry, getDomain) {
+    fromKeeEntry(db: Kdbx, keeEntry: KeeEntry, kdbxEntry: KdbxEntry, getDomain) {
         let firstPasswordFound = false;
         const conf = new EntryConfig({
             version: 1,
@@ -291,25 +293,31 @@ export default class ModelMasher {
             if (iconId === null) {
                 const customIconData = fromBase64PNG(keeEntry["iconImageData"]);
                 if (customIconData) {
-                    let iconKeyName = Object.keys(db.meta.customIcons).find(key => db.meta.customIcons[key] === customIconData);
+                    let iconKeyName;
+                    for (const [key, value] of db.meta.customIcons) {
+                        if (value.data === customIconData) {
+                            iconKeyName = key;
+                            break;
+                        }
+                    }
                     if (!iconKeyName) {
                         const uuid = KdbxUuid.random();
-                        db.meta.customIcons[uuid.toString()] = ByteUtils.arrayToBuffer(customIconData);
+                        db.meta.customIcons.set(uuid.toString(), { data: ByteUtils.arrayToBuffer(customIconData), lastModified: new Date() });
                         iconKeyName = uuid.toString();
                     }
-                    kdbxEntry.customIcon = iconKeyName;
+                    kdbxEntry.customIcon = new KdbxUuid(iconKeyName);
                 }
             } else {
                 kdbxEntry.icon = iconId;
             }
         }
 
-        this.setEntryConfig(kdbxEntry, conf);
+        ModelMasher.setEntryConfig(kdbxEntry, conf);
 
         return kdbxEntry;
     }
 
-    getRootPwGroup (dbIn: Kdbx, location?) {
+    getRootPwGroup(dbIn: Kdbx, location?) {
         if (!dbIn) { throw new Error("You must specify the database you want to find the root group for"); }
 
         if (location) {
@@ -320,7 +328,8 @@ export default class ModelMasher {
         if (homeGroupUUID) {
             const homeGroup = dbIn.getGroup(new KdbxUuid(homeGroupUUID));
             if (!homeGroup) {
-                throw new Error("Home group not found. Database misconfigured. Resolve by setting a new home group.");
+                this.logger.error("Home group not found. Database misconfigured. Working around by using default group.");
+                return dbIn.getDefaultGroup();
             }
             return homeGroup;
         } else {
@@ -328,7 +337,7 @@ export default class ModelMasher {
         }
     }
 
-    _getSubGroups (db: Kdbx, groupModel: KdbxGroup, dbContext: DBContext, config: ModelMasherConfig) {
+    _getSubGroups(db: Kdbx, groupModel: KdbxGroup, dbContext: DBContext, config: ModelMasherConfig) {
         const grp: any = this.toKeeGroup(db, groupModel);
         grp.childEntries = [];
         grp.childLightEntries = [];
@@ -336,7 +345,7 @@ export default class ModelMasher {
         if (config.complete) {
             if (config.fullDetail) {
                 groupModel.entries.forEach(entry => {
-                    if (entry.fields["URL"]) {
+                    if (entry.fields.get("URL")) {
                         grp.childEntries.push(this.toKeeEntry(db, entry, dbContext,
                             { fullDetail: true, matchAccuracy: config.matchAccuracy }
                         ));
@@ -351,7 +360,7 @@ export default class ModelMasher {
                 });
             } else {
                 groupModel.entries.forEach(entry => {
-                    if (entry.fields["URL"]) {
+                    if (entry.fields.get("URL")) {
                         grp.childLightEntries.push(this.toKeeEntry(db, entry, dbContext,
                             { matchAccuracy: config.matchAccuracy }
                         ));
@@ -381,58 +390,32 @@ export default class ModelMasher {
         return grp;
     }
 
-    getEntryConfig (entryIn: KdbxEntry, dbConfig: DatabaseConfig) {
-        let json;
-
-        try {
-            json = JSON.parse(entryIn.fields["KPRPC JSON"].getText());
-        } catch (e) {
-            // do nothing
-        }
-
-        const config = json ? new EntryConfig(json) : new EntryConfig({
-            version: 1,
-            alwaysAutoFill: false,
-            neverAutoFill: false,
-            alwaysAutoSubmit: false,
-            neverAutoSubmit: false,
-            priority: 0,
-            hide: false,
-            blockHostnameOnlyMatch: false,
-            blockDomainOnlyMatch: false
-        }, dbConfig.defaultMatchAccuracy);
-        return config;
-    }
-
-    setEntryConfig (entry: KdbxEntry, config: EntryConfig) {
-        entry.fields["KPRPC JSON"] = ProtectedValue.fromString(JSON.stringify(config));
-    }
-
-    getMatchAccuracyMethod (entry: KdbxEntry, urlsum: URLSummary, dbConfig: DatabaseConfig): MatchAccuracyMethod {
-        const conf = this.getEntryConfig(entry, dbConfig);
+    getMatchAccuracyMethod(entry: KdbxEntry, urlsum: URLSummary, dbConfig: DatabaseConfig): MatchAccuracyMethod {
+        const conf = ModelMasher.getEntryConfig(entry, dbConfig);
         if (urlsum && urlsum.domain && dbConfig.matchedURLAccuracyOverrides[urlsum.domain]) {
             return dbConfig.matchedURLAccuracyOverrides[urlsum.domain];
         } else {
-            return conf.getMatchAccuracyMethod();
+            return conf.getMatchAccuracyMethod() ?? MatchAccuracyMethod.Domain;
         }
     }
 
-    getDatabaseKPRPCConfig (db: Kdbx) {
-        if (!db.meta.customData["KeePassRPC.Config"]) {
+    getDatabaseKPRPCConfig(db: Kdbx) {
+        const kprpcConfig = db.meta.customData.get("KeePassRPC.Config")?.value;
+        if (!kprpcConfig) {
             // Set custom data and migrate the old config custom data to this
             // version (but don't save the DB - we can do this again and again until
             // user decides to save a change for another reason)
             const newConfig = new DatabaseConfig();
-
-            if (db.meta.customData["KeePassRPC.KeeFox.rootUUID"]) {
-                newConfig.rootUUID = hex2base64(db.meta.customData["KeePassRPC.KeeFox.rootUUID"]);
+            const keefoxRootUuid = db.meta.customData.get("KeePassRPC.KeeFox.rootUUID")?.value;
+            if (keefoxRootUuid) {
+                newConfig.rootUUID = hex2base64(keefoxRootUuid);
             }
 
             this.setDatabaseKPRPCConfig(db, newConfig);
             return newConfig;
         } else {
             try {
-                return DatabaseConfig.fromJSON(db.meta.customData["KeePassRPC.Config"]);
+                return DatabaseConfig.fromJSON(kprpcConfig);
             } catch (Exception) {
                 // Reset to default config because the current stored config is corrupt
                 const newConfig = new DatabaseConfig();
@@ -442,38 +425,37 @@ export default class ModelMasher {
         }
     }
 
-    setDatabaseKPRPCConfig (db: Kdbx, newConfig: DatabaseConfig) {
-        db.meta.customData["KeePassRPC.Config"] = newConfig.toJSON();
+    setDatabaseKPRPCConfig(db: Kdbx, newConfig: DatabaseConfig) {
+        db.meta.customData.set("KeePassRPC.Config", { value: newConfig.toJSON(), lastModified: new Date() });
     }
 
-    getGroupPath (group: KdbxGroup) {
+    getGroupPath(group?: KdbxGroup) {
         const groupPath: string[] = [];
         while (group) {
-            groupPath.unshift(group.name);
+            groupPath.unshift(group.name ?? "");
             group = group.parentGroup;
         }
         return groupPath.join("/");
     }
 
-    isConfigCorrectVersion (db: Kdbx) {
+    isConfigCorrectVersion(db: Kdbx) {
         // In all rejection cases, ideally we'd at least notify the user and maybe one day even assist with
         //  auto-migration but realistically, they'll just have to open and re-save the DB in KeePass
 
         // Both version 2 and 3 are correct since their differences
         // do not extend to the public API exposed by KPRPC
 
-        // tslint:disable-next-line:triple-equals
-        if (db.meta.customData["KeePassRPC.KeeFox.configVersion"] == 2 ||
+        if (db.meta.customData.get("KeePassRPC.KeeFox.configVersion")?.value === "2" ||
             this.getDatabaseKPRPCConfig(db).version === 3) {
             return true;
         } else {
             this.logger.warn("The KeeFox data stored in this database is very old so it needs to be upgraded before it will work in Kee."
-            + " Please open and save it in an instance of KeePass Password Safe 2 that has the appropriate version of the KeePassRPC.plgx plugin installed.");
+                + " Please open and save it in an instance of KeePass Password Safe 2 that has the appropriate version of the KeePassRPC.plgx plugin installed.");
             return false;
         }
     }
 
-    getURLSummary (url: string, getDomain): URLSummary {
+    getURLSummary(url: string, getDomain): URLSummary {
 
         if (url.indexOf("data:") === 0) {
             return {
@@ -518,7 +500,7 @@ export default class ModelMasher {
         }
         let portIndex = -1;
         let domain = null;
-        let hostname: string|null = null;
+        let hostname: string | null = null;
 
         if (!isFile) {
             const ipv6Bracket = hostAndPort.lastIndexOf("]");
@@ -546,7 +528,7 @@ export default class ModelMasher {
     // because the actual MAM to apply may have been modified based upon the specific URL(s) that
     // we're being asked to match against (the URLs shown in the browser rather than those
     // contained within the entry)
-    bestMatchAccuracyForAnyURL (e: KdbxEntry, conf: EntryConfig, url, urlSummary: URLSummary, mam: MatchAccuracyMethod, db: Kdbx) {
+    bestMatchAccuracyForAnyURL(e: KdbxEntry, conf: EntryConfig, url, urlSummary: URLSummary, mam: MatchAccuracyMethod, db: Kdbx) {
         let bestMatchSoFar = 0;
 
         const URLs: string[] = [];
@@ -559,19 +541,19 @@ export default class ModelMasher {
             const entryURL = URLs[i];
             if (entryURL === url) { return 50; }
 
-                    // If we require very accurate matches, we can skip the more complex assessment below
+            // If we require very accurate matches, we can skip the more complex assessment below
             if (mam === MatchAccuracyMethod.Exact) { continue; }
 
             const entryUrlQSStartIndex = entryURL.indexOf("?");
             const urlQSStartIndex = url.indexOf("?");
             const entryUrlExcludingQS = entryURL.substring(0,
-                        entryUrlQSStartIndex > 0 ? entryUrlQSStartIndex : entryURL.length);
+                entryUrlQSStartIndex > 0 ? entryUrlQSStartIndex : entryURL.length);
             const urlExcludingQS = url.substring(0,
-                        urlQSStartIndex > 0 ? urlQSStartIndex : url.Length);
+                urlQSStartIndex > 0 ? urlQSStartIndex : url.Length);
             if (entryUrlExcludingQS === urlExcludingQS) { return 40; }
 
-                    // If we've already found a reasonable match, we can skip the rest of the assessment for subsequent URLs
-                    // apart from the check for matches against a hostname excluding query string
+            // If we've already found a reasonable match, we can skip the rest of the assessment for subsequent URLs
+            // apart from the check for matches against a hostname excluding query string
             if (bestMatchSoFar >= 30) { continue; }
 
             const entryUrlSummary = this.getURLSummary(entryURL, this.getDomain);
@@ -592,11 +574,11 @@ export default class ModelMasher {
         return bestMatchSoFar;
     }
 
-    matchesAnyBlockedURL (conf: EntryConfig, url: string) {
+    matchesAnyBlockedURL(conf: EntryConfig, url: string) {
         // hostname-wide blocks are not natively supported but can be emulated using an appropriate regex
-        if (conf.BlockedURLs) {
-            for (let j = 0; j < conf.BlockedURLs.length; j++) {
-                const blockedUrl = conf.BlockedURLs[j];
+        if (conf.blockedURLs) {
+            for (let j = 0; j < conf.blockedURLs.length; j++) {
+                const blockedUrl = conf.blockedURLs[j];
                 if (blockedUrl.indexOf(url) >= 0) {
                     return true;
                 }
@@ -605,47 +587,188 @@ export default class ModelMasher {
         return false;
     }
 
-    setField (entry: KdbxEntry, field: string, value: string, allowEmpty?: boolean) {
-        let newValue;
-        if (entry.fields[field] instanceof ProtectedValue) {
+    setField(entry: KdbxEntry, field: string, value: string, allowEmpty?: boolean) {
+        let newValue: KdbxEntryField;
+        const currentValue = entry.fields.get(field);
+        let different = false;
+        if (currentValue instanceof ProtectedValue) {
             newValue = ProtectedValue.fromString(value);
+            different = currentValue.getText() !== value;
         } else {
             newValue = value;
+            different = currentValue !== value;
         }
-        if (newValue !== entry.fields[field]) {
-            const hasValue = newValue && (typeof newValue === "string" || newValue.isProtected && newValue.byteLength);
-            if (hasValue || allowEmpty) { // || this.builtInFields.indexOf(field) >= 0) {
-                //this._entryModified();
-                entry.fields[field] = newValue;
-            } else if (entry.fields.hasOwnProperty(field)) {
-                //this._entryModified();
-                delete entry.fields[field];
+        if (different) {
+            const hasValue = !!value;
+            if (hasValue || allowEmpty) {
+                entry.fields.set(field, newValue);
+            } else {
+                entry.fields.delete(field);
             }
         }
     }
 
-    getField (entry: KdbxEntry, field: string, db: Kdbx, dereference: boolean = false) {
-        const val = entry.fields[field];
+    getField(entry: KdbxEntry, field: string, db: Kdbx, dereference: boolean = false) {
+        const val = entry.fields.get(field);
         if (!val) {
             return "";
         }
-        if (val.isProtected) {
+        if (val instanceof ProtectedValue) {
             return dereference ? this.derefValue(val.getText(), entry, db) : val.getText();
         }
         return dereference ? this.derefValue(val.toString(), entry, db) : val.toString();
     }
 
-    derefValue (value: string, entry: KdbxEntry, db: Kdbx) {
+    derefValue(value: string, entry: KdbxEntry, db: Kdbx) {
         return this.Placeholders.processAllReferences(3, value, entry, () => entryGenerator(db.getDefaultGroup()));
+    }
+
+
+    static getEntryConfigV1Only(entryIn: KdbxEntry) {
+        let obj;
+
+        try {
+            obj = JSON.parse((entryIn.fields.get("KPRPC JSON") as ProtectedValue).getText());
+            return new EntryConfig(obj);
+        } catch (e) {
+            // do nothing
+        }
+        return null;
+    }
+
+    static getEntryConfigV2Only(entryIn: KdbxEntry) {
+        let obj;
+
+        try {
+            obj = JSON.parse(entryIn.customData?.get("KPRPC JSON")?.value ?? '');
+            return new EntryConfigV2(obj);
+        } catch (e) {
+            // do nothing
+        }
+        return null;
+    }
+
+    static getEntryConfig(entryIn: KdbxEntry, dbConfig: DatabaseConfig) {
+        const configV2 = ModelMasher.getEntryConfigV2Only(entryIn);
+        const configV1Converted = configV2?.convertToV1();
+
+        if (configV1Converted) {
+            return configV1Converted;
+        }
+
+        return ModelMasher.getEntryConfigV1Only(entryIn) ?? new EntryConfig({
+            version: 1,
+            alwaysAutoFill: false,
+            neverAutoFill: false,
+            alwaysAutoSubmit: false,
+            neverAutoSubmit: false,
+            priority: 0,
+            hide: false,
+            blockHostnameOnlyMatch: false,
+            blockDomainOnlyMatch: false
+        }, dbConfig.defaultMatchAccuracy);
+    }
+
+    static setEntryConfig(entry: KdbxEntry, config: EntryConfig) {
+        entry.fields.set("KPRPC JSON", ProtectedValue.fromString(JSON.stringify(config)));
+        if (config instanceof EntryConfigConverted) {
+            entry.setCustomData("KPRPC JSON", JSON.stringify(config.convertToV2(new GuidService())));
+        }
     }
 
 }
 
-function* entryGenerator (group: any) {
-    for (let i=0; i<group.entries.length; i++) {
+function* entryGenerator(group: any) {
+    for (let i = 0; i < group.entries.length; i++) {
         yield group.entries[i];
     }
-    for (let i=0; i<group.groups.length; i++) {
+    for (let i = 0; i < group.groups.length; i++) {
         yield* entryGenerator(group.groups[i]);
+    }
+}
+
+export class Utilities {
+    static FormFieldTypeToHtmlType(fft: keeFormFieldType): string {
+        if (fft === keeFormFieldType.password)
+            return "password";
+        if (fft === keeFormFieldType.select)
+            return "select-one";
+        if (fft === keeFormFieldType.radio)
+            return "radio";
+        if (fft === keeFormFieldType.checkbox)
+            return "checkbox";
+        return "text";
+    }
+
+    static FormFieldTypeToFieldType(fft: keeFormFieldType): FieldType {
+        let type: FieldType = FieldType.Text;
+        if (fft === keeFormFieldType.password)
+            type = FieldType.Password;
+        else if (fft === keeFormFieldType.select)
+            type = FieldType.Existing;
+        else if (fft === keeFormFieldType.radio)
+            type = FieldType.Existing;
+        else if (fft === keeFormFieldType.username)
+            type = FieldType.Text;
+        else if (fft === keeFormFieldType.checkbox)
+            type = FieldType.Toggle;
+        return type;
+    }
+
+    static FieldTypeToDisplay(type: FieldType, titleCase: boolean): string {
+        let typeD: string = "Text";
+        if (type === FieldType.Password)
+            typeD = "Password";
+        else if (type === FieldType.Existing)
+            typeD = "Existing";
+        else if (type === FieldType.Text)
+            typeD = "Text";
+        else if (type === FieldType.Toggle)
+            typeD = "Toggle";
+        if (!titleCase)
+            return typeD.toLowerCase();
+        return typeD;
+    }
+
+    static FieldTypeToHtmlType(ft: FieldType): string {
+        switch (ft) {
+            case FieldType.Password:
+                return "password";
+            case FieldType.Existing:
+                return "radio";
+            case FieldType.Toggle:
+                return "checkbox";
+            default:
+                return "text";
+        }
+    }
+
+    static FieldTypeToFormFieldType(ft: FieldType): keeFormFieldType {
+        switch (ft) {
+            case FieldType.Password:
+                return keeFormFieldType.password;
+            case FieldType.Existing:
+                return keeFormFieldType.radio;
+            case FieldType.Toggle:
+                return keeFormFieldType.checkbox;
+            default:
+                return keeFormFieldType.text;
+        }
+    }
+
+    // Assumes funky Username type has already been determined so all textual stuff is type text by now
+    static FormFieldTypeFromHtmlTypeOrFieldType(t: string, ft: FieldType): keeFormFieldType {
+        switch (t) {
+            case "password":
+                return keeFormFieldType.password;
+            case "radio":
+                return keeFormFieldType.radio;
+            case "checkbox":
+                return keeFormFieldType.checkbox;
+            case "select-one":
+                return keeFormFieldType.select;
+            default:
+                return Utilities.FieldTypeToFormFieldType(ft);
+        }
     }
 }

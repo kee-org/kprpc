@@ -9,7 +9,7 @@ export function toBase64PNG (iconData: any): string|null {
     return iconData ? ByteUtils.bytesToBase64(iconData) : null;
 }
 
-export function mapStandardToBase64PNG (id: number) {
+export function mapStandardToBase64PNG (id: number = 0) {
     return iconMap[id];
 }
 

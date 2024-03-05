@@ -1,7 +1,7 @@
 
 import JRPC from "jrpc";
 import ModelMasher from "./model";
-import kdbxweb, { Kdbx, KdbxEntry } from "kdbxweb";
+import kdbxweb, { Kdbx, KdbxEntry, KdbxGroup, ProtectedValue } from "kdbxweb";
 import {KdbxPlaceholders} from "kdbx-placeholders";
 import { KeeEntry, MatchAccuracyEnum } from "./kfDataModel";
 
@@ -237,11 +237,15 @@ const impl = {
                 const dbConfig = modelMasher.getDatabaseKPRPCConfig(file.db);
 
                 const homeGroup = modelMasher.getRootPwGroup(file.db);
-                homeGroup.forEachFilteredGroup((entry, group) => {
+                for (const it of homeGroup.allGroupsAndEntriesFiltered( (groupOrEntry) => {
+                    // halt iteration down into this group if it's in the recycle bin
+                    if (groupOrEntry instanceof KdbxGroup && groupOrEntry.uuid.equals(file.db.meta.recycleBinUuid)) return false;
+                    return true;
+                })) {
                     // not interested in groups
-                    if (group || !entry) return;
+                    if (it instanceof KdbxGroup) continue;
 
-                    const conf = modelMasher.getEntryConfig(entry, dbConfig);
+                    const conf = ModelMasher.getEntryConfig(it, dbConfig);
 
                     if (conf == null || conf.hide) { return; }
 
@@ -261,7 +265,7 @@ const impl = {
                                     }
                                 } catch (ex) {
                                     logger.warn("'" + regexPattern + "' is not a valid regular expression. This error was found in an entry in your database called '" +
-                                    entry.fields["Title"] + "'. You need to fix or delete this regular expression to prevent this warning message appearing.");
+                                    it.fields.get("Title") + "'. You need to fix or delete this regular expression to prevent this warning message appearing.");
                                     break;
                                 }
                             }
@@ -271,8 +275,8 @@ const impl = {
                     // Check for matching URLs for the page or HTTPAuth
                     if (!entryIsAMatch) {
                         URLs.forEach(URL => {
-                            const mam = modelMasher.getMatchAccuracyMethod(entry, URLHostnameAndPorts[URL], dbConfig);
-                            const accuracy = modelMasher.bestMatchAccuracyForAnyURL(entry, conf, URL, URLHostnameAndPorts[URL], mam, file.db);
+                            const mam = modelMasher.getMatchAccuracyMethod(it, URLHostnameAndPorts[URL], dbConfig);
+                            const accuracy = modelMasher.bestMatchAccuracyForAnyURL(it, conf, URL, URLHostnameAndPorts[URL], mam, file.db);
                             if (accuracy > bestMatchAccuracy) { bestMatchAccuracy = accuracy; }
                         });
                     }
@@ -300,7 +304,7 @@ const impl = {
                                         }
                                     } catch (ex) {
                                         logger.warn("'" + pattern + "' is not a valid regular expression. This error was found in an entry in your database called '" +
-                                        entry.fields["Title"] + "'. You need to fix or delete this regular expression to prevent this warning message appearing.");
+                                        it.fields.get("Title") + "'. You need to fix or delete this regular expression to prevent this warning message appearing.");
                                         break;
                                     }
                                 }
@@ -310,15 +314,11 @@ const impl = {
 
                     if (entryIsAMatch) {
                         allEntries.push(modelMasher.toKeeEntry(file.db,
-                            entry,
+                            it,
                             {fileName: file.id, active: true},
                             {fullDetail: true, matchAccuracy: bestMatchAccuracy}));
                     }
-                }, undefined, (group) => {
-                    // ignore if it's in the recycle bin
-                    if (group.uuid.equals(file.db.meta.recycleBinUuid)) return false;
-                    return true;
-                });
+                }
             });
 
             allEntries.sort((a, b) => {
@@ -336,10 +336,10 @@ const impl = {
 
 const mergeEntries = function (destination: KdbxEntry, source: KdbxEntry, urlMergeMode: number, db: Kdbx) {
     const dbConfig = modelMasher.getDatabaseKPRPCConfig(db);
-    const destConfig = modelMasher.getEntryConfig(destination, dbConfig);
+    const destConfig = ModelMasher.getEntryConfig(destination, dbConfig);
     if (!destConfig) { return; }
 
-    const sourceConfig = modelMasher.getEntryConfig(source, dbConfig);
+    const sourceConfig = ModelMasher.getEntryConfig(source, dbConfig);
     if (!sourceConfig) { return; }
 
     destination.pushHistory();
@@ -349,9 +349,10 @@ const mergeEntries = function (destination: KdbxEntry, source: KdbxEntry, urlMer
     destination.icon = source.icon;
     destination.customIcon = source.customIcon;
 
-    destination.fields["Title"] = source.fields["Title"];
-    destination.fields["UserName"] = source.fields["UserName"];
-    destination.fields["Password"] = kdbxweb.ProtectedValue.fromString(source.fields["Password"].getText());
+    const existingPassword = source.fields.get("Password");
+    destination.fields.set("Title", source.fields.get("Title") ?? "");
+    destination.fields.set("UserName", source.fields.get("UserName") ?? "");
+    destination.fields.set("Password", (existingPassword instanceof ProtectedValue) ? existingPassword.clone() : kdbxweb.ProtectedValue.fromString(existingPassword ?? ""));
     destConfig.formFieldList = sourceConfig.formFieldList;
 
     // This algorithm could probably be made more efficient (lots of O(n) operations
@@ -359,11 +360,13 @@ const mergeEntries = function (destination: KdbxEntry, source: KdbxEntry, urlMer
     // easiest approach for now).
 
     let destURLs: string[] = [];
-    destURLs.push(destination.fields["URL"]);
+    const destUrl = destination.fields.get("URL");
+    destURLs.push((destUrl instanceof ProtectedValue) ? destUrl.getText() : destUrl ?? "");
     if (destConfig.altURLs) { destURLs = destURLs.concat(destConfig.altURLs); }
 
     let sourceURLs: string[] = [];
-    sourceURLs.push(source.fields["URL"]);
+    const sourceUrl = source.fields.get("URL");
+    sourceURLs.push((sourceUrl instanceof ProtectedValue) ? sourceUrl.getText() : sourceUrl ?? "");
     if (sourceConfig.altURLs) { sourceURLs = sourceURLs.concat(sourceConfig.altURLs); }
 
     /// <param name="urlMergeMode">1= Replace the entry's URL (but still fill forms if you visit the old URL)
@@ -398,11 +401,11 @@ const mergeEntries = function (destination: KdbxEntry, source: KdbxEntry, urlMer
     }
 
     // These might not have changed but meh
-    destination.fields["URL"] = destURLs[0];
+    destination.fields.set("URL", destURLs[0]);
     destConfig["altURLs"] = [];
     if (destURLs.length > 1) { destConfig["altURLs"] = destURLs.slice(1, destURLs.length); }
 
-    modelMasher.setEntryConfig(destination, destConfig);
+    ModelMasher.setEntryConfig(destination, destConfig);
     destination.times.update();
 };
 
@@ -549,6 +552,10 @@ export default class KPRPC {
                 "KPRPC_SECURITY_FIX_20200729"
             ]});
         });
+    }
+
+    getModelMasher () {
+        return modelMasher;
     }
 
     async deferIfNeeded (func, next) {

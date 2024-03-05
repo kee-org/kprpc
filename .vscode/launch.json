@@ -3,7 +3,7 @@
     "configurations": [
         {
             "type": "node",
-            "runtimeVersion": "8.11.1",
+            "runtimeVersion": "20.10.0",
             "request": "launch",
             "name": "Jest Tests",
             "program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
