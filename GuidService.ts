@@ -1,11 +1,11 @@
 import { KdbxUuid } from "kdbxweb";
 
 export interface IGuidService {
-    NewGuid(): string;
+    NewGuidAsBase64(): string;
 }
 
 export class GuidService implements IGuidService {
-    public NewGuid(): string {
+    public NewGuidAsBase64(): string {
         return KdbxUuid.random().toString();
     }
 }

@@ -99,7 +99,7 @@ export class EntryConfig {
                     const f: Field = new Field({
                         valuePath: "UserName",
                         page: Math.max(ff.page, 1),
-                        uuid: guidService.NewGuid(),
+                        uuid: guidService.NewGuidAsBase64(),
                         type: FieldType.Text,
                         matcherConfigs: [mc]
                     });
@@ -115,7 +115,7 @@ export class EntryConfig {
                     const f: Field = new Field({
                         valuePath: "Password",
                         page: Math.max(ff.page, 1),
-                        uuid: guidService.NewGuid(),
+                        uuid: guidService.NewGuidAsBase64(),
                         type: FieldType.Password,
                         matcherConfigs: [mc]
                     });
@@ -126,7 +126,7 @@ export class EntryConfig {
                 }
                 else {
                     const mc = FieldMatcherConfig.forSingleClientMatch(ff.id, ff.name, ff.type);
-                    const newUniqueId = guidService.NewGuid();
+                    const newUniqueId = guidService.NewGuidAsBase64();
                     const f: Field = new Field({
                         name: ff.displayName
                         ? ff.displayName
@@ -149,7 +149,7 @@ export class EntryConfig {
         if (!usernameFound) {
             fields.push(new Field({
                 valuePath: "UserName",
-                uuid: guidService.NewGuid(),
+                uuid: guidService.NewGuidAsBase64(),
                 type: FieldType.Text,
                 matcherConfigs: [{ matcherType: FieldMatcherType.UsernameDefaultHeuristic }]
             }));
@@ -157,7 +157,7 @@ export class EntryConfig {
         if (!passwordFound) {
             fields.push(new Field({
                 valuePath: "Password",
-                uuid: guidService.NewGuid(),
+                uuid: guidService.NewGuidAsBase64(),
                 type: FieldType.Password,
                 matcherConfigs: [{ matcherType: FieldMatcherType.PasswordDefaultHeuristic }]
             }));
@@ -169,6 +169,8 @@ export class EntryConfig {
 }
 
 export class EntryConfigConverted extends EntryConfig {
+    // We use this field in Javascript consumers to allow us to use instanceof to determine
+    // if the config was originally loaded from a V2 storage format or converted from V1
     // @ts-ignore
     private _typeDiscriminator = true;
     public constructor(init?: Partial<EntryConfigConverted>, mam?: MatchAccuracyMethod) {
@@ -202,8 +204,13 @@ export enum EntryAutomationBehaviour {
 
 export enum FieldType { Text = "Text", Password = "Password", Existing = "Existing", Toggle = "Toggle", Otp = "Otp", SomeChars = "SomeChars" }
 
-// For standard KeePass entries with no KPRPC-specific config, we can save storage space (and one day data-exchange bytes) by just recording that the client should use a typical locator to work out which field is the best match, because we have no additional information to help with this task.
-// We could extend this to very common additional heuristics in future (e.g. if many sites and entries end up with a custom locator with Id and Name == "password"). That would be pretty complex though so probably won't be worthwhile.
+// For standard KeePass entries with no KPRPC-specific config, we can save storage
+// space (and one day data-exchange bytes) by just recording that the client should
+// use a typical locator to work out which field is the best match, because we have
+// no additional information to help with this task.
+// We could extend this to very common additional heuristics in future (e.g. if many
+// sites and entries end up with a custom locator with Id and Name == "password").
+// That would be pretty complex though so probably won't be worthwhile.
 export enum FieldMatcherType {
     Custom = "Custom",
     UsernameDefaultHeuristic = "UsernameDefaultHeuristic",
@@ -211,6 +218,8 @@ export enum FieldMatcherType {
 }
 
 // How we can locate a field in the client. At least one property must be set.
+// Not all versions of all clients will act upon the hints here and the
+// weighting they apply to each factor may vary
 // An array property matches if any of its items match.
 export class FieldMatcher {
     matchLogic?: MatcherLogic; // default to Client initially
@@ -274,7 +283,7 @@ export class EntryMatcherConfig {
     urlMatchMethod?: MatchAccuracyMethod;
     weight?: number; // 0 = client decides or ignores matcher
     actionOnMatch?: MatchAction;
-    actionOnNoMatch?: MatchAction; // critical to use TotalBlock here for Url match type
+    actionOnNoMatch?: MatchAction; // critical to use TotalBlock here for Url match type (or leave as null)
 
     public constructor(init?: Partial<EntryMatcherConfig>) {
         Object.assign(this, init);
@@ -282,13 +291,36 @@ export class EntryMatcherConfig {
 }
 
 export class Field {
+    // a base64 encoded 128bit unique ID.
     uuid: string;
-    name: string; // display name, not form field name attribute
-    valuePath: string; // e.g. "Username" for a KeePass Property or "." for this object
+
+    // display name, not form field name attribute
+    name: string;
+
+    // e.g. "Username" for a KeePass Property or "." for this object
+    valuePath: string;
+
+    // Should be set iff valuePath == ""."
     value: string;
-    page: number = 1; // Fields with multiple positive page numbers are effectively treated as multiple Entries when Kee assesses potential matches and field candidates to fill. Other clients might use for similar logical grouping purposes.
+
+    // Fields with multiple positive page numbers are effectively treated as multiple Entries
+    // when Kee assesses potential matches and field candidates to fill. Other clients might
+    // use for similar logical grouping purposes.
+    page: number = 1;
+
+    // A conceptual category, rather than a specific name or representation of that type.
+    // E.g. an HTML radio button is just one specific representation of the concept of a
+    // field that we will match based upon pre-existing data included in a web page.
     type: FieldType;
+
+    // If null, behaviour depends on inherited behaviour of database this field is contained within.
     placeholderHandling?: kfDm.PlaceholderHandling;
+
+    // All the ways we could consider that this field is a match/block. Could be related to
+    // information we have in the server but at least initially it's only going to be used
+    // by the client to evaluate conditions that only it knows (e.g. the DOM state of an
+    // HTML page). Initially we expect a single config per Field but we might relax that
+    // for some clients in future so store an array just in case.
     matcherConfigs: FieldMatcherConfig[];
 
     public constructor(init?: Partial<Field>) {
@@ -297,45 +329,37 @@ export class Field {
 }
 
 export class EntryConfigV2 {
+
+    // If we reuse the Custom Data storage location in future for a
+    // backwards-incompatible change, we'll need to increment this
     version: number = 2;
+
     altUrls?: string[];
     regExUrls?: string[];
     regExBlockedUrls?: string[];
     blockedUrls?: string[];
     httpRealm?: string;
+
+    // The mechanisms we can use to authenticate using this
+    // entry. Initially, just a password credential.
     authenticationMethods?: string[];
+
+    // The V1 combination of 4 booleans allowed for some redundant configurations
+    // so this single enum describing how the entry should behave upon match should
+    // make it easier to see a glance what we expect to happen.
     behaviour?: EntryAutomationBehaviour;
+
+    // All the ways we could consider that this entry is a match/block. Could be related to
+    // information we have in the client (e.g. the DOM state of an HTML page) but at least
+    // initially it's only going to be used by the server to evaluate conditions that it
+    // knows such as the requested URL or user-configured "hidden" status.
     matcherConfigs: EntryMatcherConfig[];
+
     fields?: Field[];
 
     public constructor(init?: Partial<EntryConfigV2>) {
         Object.assign(this, init);
     }
-
-    // public constructor (init?: Partial<EntryConfig>, mam?: MatchAccuracyMethod) {
-    //     Object.assign(this, init);
-    //     if (mam !== undefined) this.setMatchAccuracyMethod(mam);
-    // }
-
-    // public getMatchAccuracyMethod () {
-    //     if (this.blockHostnameOnlyMatch) return MatchAccuracyMethod.Exact;
-    //     else if (this.blockDomainOnlyMatch) return MatchAccuracyMethod.Hostname;
-    //     else return MatchAccuracyMethod.Domain;
-    // }
-
-    // public setMatchAccuracyMethod (mam: MatchAccuracyMethod) {
-    //     if (mam === MatchAccuracyMethod.Domain) {
-    //         this.blockDomainOnlyMatch = false;
-    //         this.blockHostnameOnlyMatch = false;
-    //     } else if (mam === MatchAccuracyMethod.Hostname) {
-    //         this.blockDomainOnlyMatch = true;
-    //         this.blockHostnameOnlyMatch = false;
-    //     } else {
-    //         this.blockDomainOnlyMatch = false;
-    //         this.blockHostnameOnlyMatch = true;
-    //     }
-    // }
-
 
     public convertToV1(): EntryConfigConverted {
         const conf1: EntryConfigConverted = new EntryConfigConverted();
@@ -390,11 +414,10 @@ export class EntryConfigV2 {
         conf1.regExURLs = this.regExUrls;
         conf1.regExBlockedURLs = this.regExBlockedUrls;
 
-        conf1.hide = this.matcherConfigs.some(mc => mc.matcherType == EntryMatcherType.Hide);
+        conf1.hide = this.matcherConfigs?.some(mc => mc?.matcherType == EntryMatcherType.Hide) ?? false;
 
-        const urlMatcher = this.matcherConfigs.find(mc => mc.matcherType == EntryMatcherType.Url);
+        const urlMatcher = this.matcherConfigs?.find(mc => mc?.matcherType == EntryMatcherType.Url);
         conf1.setMatchAccuracyMethod(urlMatcher?.urlMatchMethod ?? MatchAccuracyMethod.Domain);
-
 
         return conf1;
     }
@@ -402,35 +425,34 @@ export class EntryConfigV2 {
     public convertFields(fields: Field[]): kfDm.KeeLoginFieldInternal[] {
         const formFieldList: kfDm.KeeLoginFieldInternal[] = [];
 
-        for (let ff of fields) {
+        for (let field of fields) {
 
-            let displayName = ff.name;
-            let ffValue = ff.value;
+            let displayName = field.name;
+            let ffValue = field.value;
             let htmlName = "";
             let htmlId = "";
-            let htmlType = Utilities.FieldTypeToFormFieldType(ff.type);
+            let htmlType = Utilities.FieldTypeToFormFieldType(field.type);
 
             // Currently we can only have one custommatcher. If that changes and someone tries
             // to use this old version with a newer DB things will break so they will have to
             // upgrade again to fix it.
-            let customMatcherConfig = ff.matcherConfigs.find(mc => mc.customMatcher != null);
+            let customMatcherConfig = field.matcherConfigs?.find(mc => mc.customMatcher != null);
             if (customMatcherConfig != null) {
                 htmlName = customMatcherConfig.customMatcher?.names?.[0] ?? "";
-
                 htmlId = customMatcherConfig.customMatcher?.ids?.[0] ?? "";
 
                 if (customMatcherConfig.customMatcher?.types != null) {
                     htmlType = Utilities.FormFieldTypeFromHtmlTypeOrFieldType(
-                        customMatcherConfig.customMatcher.types[0] ?? "", ff.type);
+                        customMatcherConfig.customMatcher.types[0] ?? "", field.type);
                 }
             }
 
-            if (ff.type == FieldType.Password && ff.valuePath == "Password") {
+            if (field.type == FieldType.Password && field.valuePath == "Password") {
                 displayName = "KeePass password";
                 htmlType = kfDm.keeFormFieldType.password;
                 ffValue = "{PASSWORD}";
             }
-            else if (ff.type == FieldType.Text && ff.valuePath == "UserName") {
+            else if (field.type == FieldType.Text && field.valuePath == "UserName") {
                 displayName = "KeePass username";
                 htmlType = kfDm.keeFormFieldType.username;
                 ffValue = "{USERNAME}";
@@ -438,9 +460,9 @@ export class EntryConfigV2 {
 
             // KV1&2 requires a displayname to work properly so force it to be the uuid if
             // none was already present. Should only happen after an import from KeePass
-            // (and was a pre-existing import bug even before V2 config)
+            // (and this was a pre-existing import bug even before V2 config development)
             if (!displayName) {
-                displayName = ff.uuid;
+                displayName = field.uuid;
             }
 
             if (ffValue !== "") {
@@ -450,13 +472,12 @@ export class EntryConfigV2 {
                     value: ffValue,
                     type: htmlType,
                     id: htmlId,
-                    page: ff.page,
-                    placeholderHandling: ff.placeholderHandling ?? kfDm.PlaceholderHandling.Default,
+                    page: field.page,
+                    placeholderHandling: field.placeholderHandling ?? kfDm.PlaceholderHandling.Default,
                 }));
             }
         }
 
         return formFieldList;
     }
-
 }
