@@ -3,6 +3,9 @@ node_modules
 jspm_packages
 
 # Output directories
+dist/**/*
 
 # Test coverage stats
 coverage
+
+*.map
