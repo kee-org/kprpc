@@ -237,17 +237,23 @@ const impl = {
                 const dbConfig = modelMasher.getDatabaseKPRPCConfig(file.db);
 
                 const homeGroup = modelMasher.getRootPwGroup(file.db);
+
+                let totalAll = 0;
+                let totalEntries = 0;
+
                 for (const it of homeGroup.allGroupsAndEntriesFiltered( (groupOrEntry) => {
                     // halt iteration down into this group if it's in the recycle bin
                     if (groupOrEntry instanceof KdbxGroup && groupOrEntry.uuid.equals(file.db.meta.recycleBinUuid)) return false;
                     return true;
                 })) {
+                    totalAll++;
                     // not interested in groups
                     if (it instanceof KdbxGroup) continue;
+                    totalEntries++;
 
                     const conf = ModelMasher.getEntryConfig(it, dbConfig);
 
-                    if (conf == null || conf.hide) { return; }
+                    if (conf == null || conf.hide) { continue; }
 
                     let entryIsAMatch = false;
                     let bestMatchAccuracy = 0;
@@ -319,6 +325,7 @@ const impl = {
                             {fullDetail: true, matchAccuracy: bestMatchAccuracy}));
                     }
                 }
+                logger.debug('total entries: ' + totalEntries + '. total all: ' + totalAll);
             });
 
             allEntries.sort((a, b) => {
